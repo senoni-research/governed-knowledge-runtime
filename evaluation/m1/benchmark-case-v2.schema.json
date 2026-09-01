@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/benchmark-case-v2.schema.json",
+  "title": "GKR M1 benchmark case v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "scenario_id",
+    "variant_id",
+    "split",
+    "query_class",
+    "question_sha256",
+    "authorship",
+    "scope",
+    "oracle"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-case-v2"},
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "variant_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "split": {
+      "enum": ["development", "validation", "test"]
+    },
+    "query_class": {
+      "enum": [
+        "exact_factual",
+        "semantic_paraphrase",
+        "numeric_conditional",
+        "temporal",
+        "authorization",
+        "unknown_oos",
+        "multi_record",
+        "adversarial_conflicting"
+      ]
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "authorship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "independent_from_retriever_tuning"],
+      "properties": {
+        "method": {
+          "enum": ["human", "different_model_family", "human_edited_model"]
+        },
+        "model_family": {
+          "type": ["string", "null"]
+        },
+        "independent_from_retriever_tuning": {
+          "const": true
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "groups", "as_of"],
+      "properties": {
+        "actor": {"type": ["string", "null"]},
+        "groups": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "known_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sufficient_reference_sets",
+        "forbidden_references",
+        "publication",
+        "support_label"
+      ],
+      "properties": {
+        "sufficient_reference_sets": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string"},
+            "uniqueItems": true
+          }
+        },
+        "forbidden_references": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "publication": {
+          "enum": ["published", "refused", "withheld"]
+        },
+        "support_label": {
+          "enum": ["supported", "unsupported", "conflicting"]
+        },
+        "strict_answer": {
+          "type": ["string", "null"]
+        },
+        "required_claims": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "forbidden_claims": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "required_citations": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "oracle_notes": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "split": {
+            "enum": ["development", "validation"]
+          }
+        },
+        "required": ["split"]
+      },
+      "then": {
+        "required": ["question"]
+      }
+    }
+  ]
+}

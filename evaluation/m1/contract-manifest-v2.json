@@ -1,0 +1,11 @@
+{
+  "contract_version": "gkr-m1-contract-v2",
+  "status": "frozen",
+  "files": {
+    "benchmark-case-v2.schema.json": "cecdcb457334e6110c45c0fb074beb18af665068321dbb4d309f895d841f7289",
+    "metric-contract-v2.json": "6df88559d5f5de0c5b5ae5b11df735121a1872098fc6c18b4253b402f1291138",
+    "suite-manifest.schema.json": "f49fc054a84d691642caafd07441aa91f7eea087f3dc4fbb71a0f36d22c29c16",
+    "programme.json": "29e49dfeacdcb93c631f9db1c4b00c6258f4fa7c7c52b20f6355bc84c1b00511"
+  },
+  "cases_status": "pending-independent-owner-labelled-corpus"
+}

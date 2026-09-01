@@ -1,0 +1,29 @@
+{
+  "programme_version": "gkr-m1-programme-v1",
+  "status": "contract-frozen-corpus-and-cases-pending",
+  "independent_scenarios": {
+    "development": 120,
+    "validation": 120,
+    "test": 120
+  },
+  "paraphrase_policy": "Variants share one scenario_id and do not increase scenario counts.",
+  "synthetic_authority_record_target": {
+    "minimum": 40,
+    "preferred_maximum": 50
+  },
+  "test_contamination_controls": [
+    "independent_authorship",
+    "sealed_test_questions",
+    "question_hashes",
+    "exact_cross_split_deduplication",
+    "reviewed_semantic_cross_split_deduplication",
+    "oracle_evidence_sets"
+  ],
+  "current_pass_status": {
+    "contract": "passed",
+    "corpus": "not_run",
+    "development": "not_run",
+    "validation": "not_run",
+    "test": "not_run"
+  }
+}

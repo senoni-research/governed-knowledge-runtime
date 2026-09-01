@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/suite-manifest.schema.json",
+  "title": "GKR M1 frozen suite manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "suite_id",
+    "status",
+    "case_schema_version",
+    "metric_contract_version",
+    "corpus",
+    "splits",
+    "query_class_scenario_counts",
+    "deduplication"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-suite-manifest-v1"},
+    "suite_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "frozen"]},
+    "case_schema_version": {"const": "gkr-m1-case-v2"},
+    "metric_contract_version": {"const": "gkr-m1-retrieval-metrics-v2"},
+    "corpus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_count", "manifest_sha256", "authority_content_sha256"],
+      "properties": {
+        "record_count": {
+          "type": "integer",
+          "minimum": 40
+        },
+        "manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "authority_content_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "splits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["development", "validation", "test"],
+      "properties": {
+        "development": {"$ref": "#/$defs/split"},
+        "validation": {"$ref": "#/$defs/split"},
+        "test": {
+          "allOf": [
+            {"$ref": "#/$defs/split"},
+            {
+              "type": "object",
+              "properties": {
+                "sealed": {"const": true}
+              }
+            }
+          ]
+        }
+      }
+    },
+    "query_class_scenario_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_factual",
+        "semantic_paraphrase",
+        "numeric_conditional",
+        "temporal",
+        "authorization",
+        "unknown_oos",
+        "multi_record",
+        "adversarial_conflicting"
+      ],
+      "properties": {
+        "exact_factual": {"type": "integer", "minimum": 1},
+        "semantic_paraphrase": {"type": "integer", "minimum": 1},
+        "numeric_conditional": {"type": "integer", "minimum": 1},
+        "temporal": {"type": "integer", "minimum": 1},
+        "authorization": {"type": "integer", "minimum": 1},
+        "unknown_oos": {"type": "integer", "minimum": 1},
+        "multi_record": {"type": "integer", "minimum": 1},
+        "adversarial_conflicting": {"type": "integer", "minimum": 1}
+      }
+    },
+    "deduplication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_cross_split_duplicates",
+        "semantic_cross_split_candidates_reviewed",
+        "report_sha256"
+      ],
+      "properties": {
+        "exact_cross_split_duplicates": {"const": 0},
+        "semantic_cross_split_candidates_reviewed": {"const": true},
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_scenario_count",
+        "case_count",
+        "cases_sha256",
+        "questions_sha256",
+        "sealed"
+      ],
+      "properties": {
+        "independent_scenario_count": {"const": 120},
+        "case_count": {"type": "integer", "minimum": 120},
+        "cases_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "questions_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "sealed": {"type": "boolean"}
+      }
+    }
+  }
+}

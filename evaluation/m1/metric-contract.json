@@ -1,0 +1,39 @@
+{
+  "schema_version": "gkr-m1-metrics-v1",
+  "status": "frozen",
+  "query_classes": [
+    "exact_factual",
+    "numeric_conditional",
+    "semantic_paraphrase",
+    "temporal",
+    "authorization",
+    "unknown_oos",
+    "conflict",
+    "multi_document",
+    "adversarial",
+    "citation"
+  ],
+  "metrics": [
+    "recall_at_k",
+    "mrr",
+    "ndcg",
+    "stale_version_exposure",
+    "unauthorized_exposure",
+    "oos_false_load",
+    "oos_false_refusal",
+    "strict_answer_accuracy",
+    "citation_precision",
+    "citation_coverage",
+    "claim_support",
+    "latency_ms",
+    "peak_process_rss_bytes",
+    "prompt_tokens"
+  ],
+  "promotion_gates": {
+    "unauthorized_exposure": 0,
+    "stale_version_exposure": 0,
+    "requires_baseline_comparison": true,
+    "requires_model_and_retriever_fingerprints": true,
+    "requires_per_query_class_results": true
+  }
+}

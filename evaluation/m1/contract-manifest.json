@@ -1,0 +1,9 @@
+{
+  "contract_version": "gkr-m1-contract-v1",
+  "status": "frozen",
+  "files": {
+    "benchmark-case.schema.json": "d45cb1785eb7b342733bd7148c566d2bb07a17167be4646b34189a3f3ef53aef",
+    "metric-contract.json": "c83829e55c12318140344b887f3541ecbae35a7b629380e645bcf39da589da27"
+  },
+  "cases_status": "pending-owner-labelled-corpus"
+}

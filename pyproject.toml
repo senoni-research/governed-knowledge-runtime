@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "governed-knowledge-runtime"
+version = "0.1.0"
+description = "A local-first, governed runtime for temporal company knowledge on Apple Silicon."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = { text = "MIT" }
+authors = [{ name = "Philippe Dagher" }]
+keywords = [
+  "knowledge-runtime",
+  "retrieval",
+  "governance",
+  "temporal-knowledge",
+  "apple-silicon",
+  "mlx",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/senoni-research/governed-knowledge-runtime"
+Issues = "https://github.com/senoni-research/governed-knowledge-runtime/issues"
+Repository = "https://github.com/senoni-research/governed-knowledge-runtime"
+
+[project.optional-dependencies]
+mac = [
+  "mlx-lm>=0.31.3,<1",
+]
+dev = [
+  "jsonschema>=4.23,<5",
+  "pytest>=8.3,<9",
+  "ruff>=0.9,<1",
+]
+
+[project.scripts]
+gkr = "gkr.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["gkr*"]
+
+[tool.setuptools.package-data]
+gkr = ["py.typed"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [
+  ".venv",
+  "artifacts",
+  "build",
+  "dist",
+  "*.egg-info",
+  ".specstory",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

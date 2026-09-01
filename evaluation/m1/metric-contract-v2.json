@@ -1,0 +1,41 @@
+{
+  "schema_version": "gkr-m1-retrieval-metrics-v2",
+  "status": "frozen-before-corpus-authoring",
+  "arms": [
+    "full_authorized_corpus",
+    "bm25",
+    "dense_candidate_a",
+    "dense_candidate_b",
+    "bm25_dense_rank_fusion",
+    "hybrid_local_reranker",
+    "oracle_evidence"
+  ],
+  "metrics": [
+    "correct_record_recall_at_1",
+    "correct_record_recall_at_5",
+    "mrr",
+    "ndcg",
+    "wrong_record_rate",
+    "empty_retrieval_rate",
+    "oos_false_load_rate",
+    "oos_correct_rejection_rate",
+    "stale_version_retrieval_rate",
+    "unauthorized_record_exposure",
+    "retrieval_latency_p50_ms",
+    "retrieval_latency_p95_ms",
+    "index_build_time_ms",
+    "incremental_update_time_ms",
+    "peak_process_rss_bytes"
+  ],
+  "absolute_gates": {
+    "unauthorized_record_exposure": 0,
+    "stale_version_retrieval_rate": 0
+  },
+  "selection_policy": {
+    "tune_on": "validation",
+    "open_test_after_thresholds_frozen": true,
+    "report_by_query_class": true,
+    "simplest_passing_arm_wins": true,
+    "initial_recall_at_5_candidate_target": 0.95
+  }
+}
