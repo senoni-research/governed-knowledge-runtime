@@ -1,0 +1,148 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/corpus-manifest.schema.json",
+  "title": "GKR M1 synthetic authority corpus manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "status",
+    "format_version",
+    "as_of_anchor",
+    "stable_record_count",
+    "authority_event_count",
+    "domain_counts",
+    "coverage",
+    "authority_jsonl_sha256",
+    "content_digest_sha256",
+    "generation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gkr-m1-corpus-manifest-v1"
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": ["candidate-awaiting-independent-review", "reviewed", "frozen"],
+      "description": "`reviewed` means independent ChatGPT synthetic-content review completed. `reviewed` does not mean owner approval, organizational authority, Gate 1 passage, or `frozen`."
+    },
+    "format_version": {
+      "const": "gkr-m1-authority-jsonl-v1"
+    },
+    "as_of_anchor": {
+      "type": "string",
+      "format": "date"
+    },
+    "stable_record_count": {
+      "type": "integer",
+      "minimum": 40,
+      "maximum": 50
+    },
+    "authority_event_count": {
+      "type": "integer",
+      "minimum": 60
+    },
+    "domain_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "required": [
+        "finance",
+        "engineering",
+        "security",
+        "people",
+        "procurement",
+        "legal",
+        "operations",
+        "it"
+      ],
+      "properties": {
+        "finance": {"type": "integer", "minimum": 1},
+        "engineering": {"type": "integer", "minimum": 1},
+        "security": {"type": "integer", "minimum": 1},
+        "people": {"type": "integer", "minimum": 1},
+        "procurement": {"type": "integer", "minimum": 1},
+        "legal": {"type": "integer", "minimum": 1},
+        "operations": {"type": "integer", "minimum": 1},
+        "it": {"type": "integer", "minimum": 1}
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "versioned_records",
+        "future_effective_records",
+        "retired_records",
+        "acl_changed_records",
+        "relationship_bearing_records",
+        "structured_rule_records",
+        "conflict_records",
+        "adversarial_evidence_records"
+      ],
+      "properties": {
+        "versioned_records": {"type": "integer", "minimum": 8},
+        "future_effective_records": {"type": "integer", "minimum": 3},
+        "retired_records": {"type": "integer", "minimum": 3},
+        "acl_changed_records": {"type": "integer", "minimum": 4},
+        "relationship_bearing_records": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Count of distinct stable record_id values that have at least one typed relation on any version. This is not a count of relation triples."
+        },
+        "structured_rule_records": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Count of distinct stable record_id values that have at least one PolicyRule on any version. This is not a count of rule objects."
+        },
+        "conflict_records": {
+          "type": "integer",
+          "minimum": 4,
+          "description": "Count of distinct stable record_id values that carry metadata.conflict_group on any version. This is not a count of conflict pairs or groups."
+        },
+        "adversarial_evidence_records": {
+          "type": "integer",
+          "minimum": 6,
+          "description": "Count of distinct stable record_id values that carry metadata.adversarial=true on any version. This is not a count of events."
+        }
+      }
+    },
+    "authority_jsonl_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "content_digest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "generation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "producer",
+        "content_note",
+        "independent_review",
+        "review_note"
+      ],
+      "properties": {
+        "producer": {"const": "grok"},
+        "content_note": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independent_review": {
+          "enum": ["pending-chatgpt", "completed"],
+          "description": "`completed` refers only to the independent ChatGPT synthetic-content review workflow. It is not owner, legal, compliance, or organizational approval."
+        },
+        "review_note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

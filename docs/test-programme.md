@@ -81,7 +81,18 @@ The v2 contract under `evaluation/m1/` requires:
 
 The eight required classes are exact factual, semantic paraphrase, numeric/conditional,
 temporal, authorization, unknown/out-of-scope, multi-record, and
-adversarial/conflicting. The owner-labelled corpus must be created before this gate can pass.
+adversarial/conflicting.
+
+A Grok-authored and Grok-remediated fictional synthetic authority corpus now exists
+under `evaluation/m1/corpus/`. Independent ChatGPT content review concluded
+`CONTENT_APPROVED`. Independent Cursor code review concluded `CODE_APPROVED`. That
+review is of fictional benchmark content. It is not human or organizational approval,
+and it does not satisfy the frozen v2 owner-labelled requirement. A later versioned
+contract is required before replacing owner labelling with AI-reviewed synthetic data
+for promotion. The 360 scenarios and oracles remain unbuilt, so this gate stays
+`not_run`. Corpus status `reviewed` is not `frozen`. Validate the corpus with
+`.venv/bin/python scripts/validate_m1_corpus.py`. Real company authority still requires
+an organization-defined trusted approval process.
 
 ## Gate 2 — Retrieval bake-off
 

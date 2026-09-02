@@ -1,0 +1,37 @@
+{
+  "as_of_anchor": "2026-09-02",
+  "authority_event_count": 63,
+  "authority_jsonl_sha256": "3325db848fe13a2f0f3e7b2e0894e92d9b27e99c42a16b3c90f03b40a39c81a2",
+  "content_digest_sha256": "1a30668d55910c544fa00aa6927ad7dc3064f6585a6186bc543fc590dec64300",
+  "corpus_id": "gkr-m1-authority-corpus",
+  "coverage": {
+    "acl_changed_records": 6,
+    "adversarial_evidence_records": 6,
+    "conflict_records": 8,
+    "future_effective_records": 3,
+    "relationship_bearing_records": 18,
+    "retired_records": 3,
+    "structured_rule_records": 11,
+    "versioned_records": 16
+  },
+  "domain_counts": {
+    "engineering": 5,
+    "finance": 8,
+    "it": 5,
+    "legal": 5,
+    "operations": 6,
+    "people": 6,
+    "procurement": 6,
+    "security": 6
+  },
+  "format_version": "gkr-m1-authority-jsonl-v1",
+  "generation": {
+    "content_note": "Grok produced candidate synthetic content and later remediations.",
+    "independent_review": "completed",
+    "producer": "grok",
+    "review_note": "Independent ChatGPT content review completed with CONTENT_APPROVED. It reviewed fictional synthetic content only. It is not human, owner, legal, compliance, or organizational approval, and it does not satisfy frozen M1 v2 owner labelling."
+  },
+  "schema_version": "gkr-m1-corpus-manifest-v1",
+  "stable_record_count": 47,
+  "status": "reviewed"
+}

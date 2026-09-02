@@ -92,6 +92,13 @@ def test_m1_v2_programme_freezes_splits_oracles_and_safety_metrics() -> None:
     }
     assert "sufficient_reference_sets" in case_schema["properties"]["oracle"]["required"]
     assert manifest["cases_status"] == "pending-independent-owner-labelled-corpus"
+    assert programme["current_pass_status"] == {
+        "contract": "passed",
+        "corpus": "not_run",
+        "development": "not_run",
+        "validation": "not_run",
+        "test": "not_run",
+    }
     for file_name, expected_hash in manifest["files"].items():
         content = (contract_directory / file_name).read_bytes()
         assert hashlib.sha256(content).hexdigest() == expected_hash

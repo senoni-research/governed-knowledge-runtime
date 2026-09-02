@@ -7,11 +7,22 @@ question hashes, independent-authorship metadata, alternative sufficient oracle-
 sets, a sealed-suite manifest, and retrieval-specific metrics. Results from different contract
 versions must not be merged.
 
-The benchmark corpus and reviewed cases are intentionally not invented from the five-record
-demo. They must be assembled and owner-labelled as the next evaluation task: 120 independent
-development scenarios, 120 validation scenarios, and 120 sealed test scenarios over at least
-40 synthetic authority records. Paraphrases share a `scenario_id` and do not increase the
-independent-scenario count.
+A Grok-authored and Grok-remediated fictional synthetic authority corpus now exists
+under `corpus/`. Independent ChatGPT content review concluded `CONTENT_APPROVED`.
+Independent Cursor code review concluded `CODE_APPROVED`. That is AI review of
+fictional benchmark content, not human or organizational approval. Validate the
+corpus with:
+
+```bash
+.venv/bin/python scripts/validate_m1_corpus.py
+```
+
+The frozen v2 contract still requires an owner-labelled suite. Independent ChatGPT
+review does not satisfy that contract. A later versioned contract is required before
+an AI-reviewed synthetic suite can be promoted. The 360 development, validation, and
+sealed test scenarios remain unbuilt, and Gate 1 remains `not_run`. Corpus status
+`reviewed` is not `frozen`. Paraphrases will share a `scenario_id` and must not
+increase the independent-scenario count.
 
 Every completed suite must contain exact factual, semantic paraphrase, numeric/conditional,
 temporal, authorization, unknown/out-of-scope, multi-record, and adversarial/conflicting

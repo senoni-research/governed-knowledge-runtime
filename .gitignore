@@ -22,4 +22,7 @@ models/
 *.log
 .idea/
 .vscode/
+
+# Local planning, external-agent prompts, and review handoffs.
+dev/
 .specstory/
