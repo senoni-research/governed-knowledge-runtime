@@ -164,8 +164,11 @@ are unbuilt, and Gate 1 remains `not_run`. Deterministic oracle validation is no
 semantic proof. The conformance fixture is non-scoring and unreviewed in its case
 provenance; its prompt digest is intentionally null because the historical
 prompt preimage was not retained. Gate 1 defines metrics but selects no
-retriever. Plaintext test staging is not a sealed bundle; sealing requires an
-external encrypted artifact. Validate the corpus with:
+retriever. Scoring-suite support can prepare exact salted staging bytes
+outside the repository, encrypt those bytes with local `age`, and finalize
+from the unchanged prepared files. Test plaintext and ciphertext stay outside
+the repository. Plaintext test staging is not a sealed bundle; sealing
+requires an external encrypted artifact. Validate the corpus with:
 
 ```bash
 .venv/bin/python scripts/validate_m1_corpus.py

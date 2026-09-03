@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/authoring-support/semantic-dedup-report-v1.schema.json",
+  "title": "GKR M1 semantic dedup report v1",
+  "description": "Final semantic cross-split deduplication attestation. Support schema only; not part of the frozen v3 contract. Tooling validates schema, question-set digest, candidate completeness, and recorded counts. It cannot prove that a model actually performed the review.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "hash_profile_id",
+    "question_set_sha256",
+    "exact_cross_split_duplicates",
+    "semantic_cross_split_candidates_reviewed",
+    "all_scenarios_reviewed_for_semantic_cross_split_duplication",
+    "unresolved_semantic_duplicates",
+    "candidates",
+    "reviewer_kind",
+    "reviewer_identity",
+    "reviewer_session_id",
+    "reviewer_model_family_id",
+    "reviewer_model_id",
+    "reviewer_model_revision",
+    "reviewer_prompt_sha256",
+    "independent_from_retriever_tuning",
+    "attestation_boundary"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-semantic-dedup-report-v1"},
+    "hash_profile_id": {"const": "gkr-m1-hash-profile-v1"},
+    "question_set_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "exact_cross_split_duplicates": {"const": 0},
+    "semantic_cross_split_candidates_reviewed": {"const": true},
+    "all_scenarios_reviewed_for_semantic_cross_split_duplication": {
+      "const": true
+    },
+    "unresolved_semantic_duplicates": {"const": 0},
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "left_case_id",
+          "right_case_id",
+          "left_split",
+          "right_split",
+          "disposition",
+          "finding_codes"
+        ],
+        "properties": {
+          "left_case_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]+$"
+          },
+          "right_case_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]+$"
+          },
+          "left_split": {
+            "enum": ["development", "validation", "test"]
+          },
+          "right_split": {
+            "enum": ["development", "validation", "test"]
+          },
+          "disposition": {
+            "enum": ["distinct", "different_intent", "not_semantic_duplicate"]
+          },
+          "finding_codes": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "reviewer_kind": {"enum": ["human", "model"]},
+    "reviewer_identity": {"type": "string", "minLength": 1},
+    "reviewer_session_id": {"type": "string", "minLength": 1},
+    "reviewer_model_family_id": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "reviewer_model_id": {"type": ["string", "null"], "minLength": 1},
+    "reviewer_model_revision": {"type": ["string", "null"]},
+    "reviewer_prompt_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "independent_from_retriever_tuning": {"const": true},
+    "attestation_boundary": {
+      "const": "This artifact attests that a reviewer recorded these dispositions. Support tooling validates schema, question-set digest, candidate completeness, and recorded counts. It cannot prove the model actually performed the review."
+    }
+  }
+}

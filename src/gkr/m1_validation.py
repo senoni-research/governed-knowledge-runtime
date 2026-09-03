@@ -22,6 +22,13 @@ _QUERY_CLASSES = {
 }
 
 
+_SCHEMA_VERSION_BY_FILE = {
+    "benchmark-case.schema.json": "gkr-m1-case-v1",
+    "benchmark-case-v2.schema.json": "gkr-m1-case-v2",
+    "benchmark-case-v3.schema.json": "gkr-m1-case-v3",
+}
+
+
 def validate_m1_cases(
     case_path: str | Path,
     *,
@@ -39,6 +46,7 @@ def validate_m1_cases(
     validator = Draft202012Validator(schema)
     cases = _load_jsonl(case_path)
     errors: list[str] = []
+    expected_version = _SCHEMA_VERSION_BY_FILE.get(Path(schema_path).name)
     case_ids: set[str] = set()
     scenario_splits: dict[str, str] = {}
     question_digests: dict[str, str] = {}
@@ -51,6 +59,11 @@ def validate_m1_cases(
         for error in validator.iter_errors(case):
             location = ".".join(str(part) for part in error.absolute_path)
             errors.append(f"{prefix}:{location or '<root>'}: {error.message}")
+        declared = case.get("schema_version")
+        if declared == "gkr-m1-case-v3" and expected_version != "gkr-m1-case-v3":
+            errors.append(
+                f"{prefix}: v3 cases must not be silently validated against {expected_version}"
+            )
 
         case_id = str(case.get("case_id", ""))
         if case_id in case_ids:

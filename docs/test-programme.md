@@ -104,9 +104,14 @@ and metrics only; it selects no retriever. The Gate 2 execution contract is defe
 and the test split remains unopened. Deterministic oracle validation checks
 corpus-grounded invariants only and is not semantic proof. The 16-case
 conformance fixture is non-scoring and records pending semantic review and
-intentionally incomplete prompt provenance in its own case files. Plaintext
-test staging is not a sealed bundle; sealing requires an external encrypted
-artifact. Validate the corpus with `.venv/bin/python scripts/validate_m1_corpus.py`.
+intentionally incomplete prompt provenance in its own case files. Scoring-suite
+tooling now supports role-separated authoring packets, lexical dedup candidates,
+and a two-phase prepare-then-`age`-then-finalize flow. Test plaintext, salts,
+recipients, and ciphertext remain outside the repository. Plaintext test
+staging is not a sealed bundle; sealing requires an external encrypted
+artifact. Support schemas under `evaluation/m1/authoring-support/` are not part
+of the frozen contract. Validate the corpus with
+`.venv/bin/python scripts/validate_m1_corpus.py`.
 Real company authority still requires an organization-defined trusted approval
 process.
 

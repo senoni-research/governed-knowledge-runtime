@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/authoring-support/question-draft-v1.schema.json",
+  "title": "GKR M1 question draft v1",
+  "description": "Question-author packet. Support schema only; not part of the frozen v3 contract. Must not contain an oracle, expected answer, claims, citations, record references, disposition, or answer-bearing notes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "hash_profile_id",
+    "case_id",
+    "scenario_id",
+    "variant_id",
+    "split",
+    "query_class",
+    "question",
+    "question_sha256",
+    "question_authorship",
+    "scope"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-question-draft-v1"},
+    "hash_profile_id": {"const": "gkr-m1-hash-profile-v1"},
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "variant_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "split": {
+      "enum": ["development", "validation", "test"]
+    },
+    "query_class": {
+      "enum": [
+        "exact_factual",
+        "semantic_paraphrase",
+        "numeric_conditional",
+        "temporal",
+        "authorization",
+        "unknown_oos",
+        "multi_record",
+        "adversarial_conflicting"
+      ]
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "question_authorship": {"$ref": "#/$defs/authorshipRole"},
+    "scope": {"$ref": "#/$defs/scope"},
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true,
+      "description": "Optional neutral labels. Must not carry answers, claims, citations, dispositions, or record references."
+    }
+  },
+  "not": {
+    "anyOf": [
+      {"required": ["oracle"]},
+      {"required": ["oracle_notes"]},
+      {"required": ["oracle_authorship"]},
+      {"required": ["oracle_review"]},
+      {"required": ["case_kind"]},
+      {"required": ["expected_answer"]},
+      {"required": ["strict_answer"]},
+      {"required": ["required_claims"]},
+      {"required": ["forbidden_claims"]},
+      {"required": ["required_citations"]},
+      {"required": ["disposition"]},
+      {"required": ["disposition_reason"]},
+      {"required": ["publication"]},
+      {"required": ["support_label"]},
+      {"required": ["sufficient_reference_sets"]},
+      {"required": ["forbidden_references"]}
+    ]
+  },
+  "$defs": {
+    "authorshipRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "session_id",
+        "identity",
+        "model_family_id",
+        "model_id",
+        "model_revision",
+        "prompt_retained",
+        "prompt_sha256",
+        "independent_from_retriever_tuning"
+      ],
+      "properties": {
+        "method": {"enum": ["human", "model", "human_edited_model"]},
+        "session_id": {"type": "string", "minLength": 1},
+        "identity": {"type": "string", "minLength": 1},
+        "model_family_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "model_id": {"type": ["string", "null"], "minLength": 1},
+        "model_revision": {"type": ["string", "null"]},
+        "prompt_retained": {"type": "boolean"},
+        "prompt_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "independent_from_retriever_tuning": {"const": true}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "groups", "as_of", "known_at"],
+      "properties": {
+        "actor": {"type": ["string", "null"]},
+        "groups": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "as_of": {"type": "string", "format": "date"},
+        "known_at": {"type": "string", "format": "date-time"}
+      }
+    }
+  }
+}
