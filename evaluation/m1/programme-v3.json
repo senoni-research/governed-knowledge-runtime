@@ -1,0 +1,110 @@
+{
+  "programme_version": "gkr-m1-programme-v3",
+  "status": "frozen",
+  "hash_profile_id": "gkr-m1-hash-profile-v1",
+  "encryption_profile_id": "age-x25519-v1",
+  "model_family_registry_id": "gkr-m1-model-family-registry-v1",
+  "purpose": "Research benchmark policy for an AI-authored fictional corpus and independently reviewed scoring cases. This file has no mutable pass-status field. v3 contract frozen; corpus frozen; Gate 1 not_run. Gate 1 remains not_run until a later scoring suite is authored, frozen with an age-x25519-v1 externally encrypted test artifact, and executed. Gate 1 freezes corpus, cases, oracles, split commitments and metrics only. Gate 1 status is recorded on the scoring suite manifest, never in this file. No retriever is selected or test-opened by Gate 1.",
+  "contract_state": {
+    "corpus": "frozen under corpus-freeze-manifest.json",
+    "v3_case_and_metric_contract": "frozen normative contract; scoring cases unbuilt",
+    "conformance_fixture": "non-scoring machinery sample; semantic review pending in case provenance; prompt provenance intentionally incomplete",
+    "gate_1": "not_run",
+    "gate_1_scope": "corpus, cases, oracles, split commitments, and metrics only; no retriever selected",
+    "gate_2_retrieval_configuration": "separately versioned execution contract; not created or bound by Gate 1",
+    "status_phrase": "v3 contract frozen; corpus frozen; Gate 1 not_run"
+  },
+  "case_kind": {
+    "scoring": "Default production benchmark shape. Every scoring case must have completed semantic review, pairwise-distinct question-author, oracle-author, and reviewer sessions, prompt_retained=true, and a valid prompt digest under the hash profile. Scoring cases are the only cases eligible for a scoring suite manifest.",
+    "conformance": "Machinery-only. Never scoreable. Never eligible for a scoring suite manifest. May carry pending semantic review and prompt_retained=false with prompt_sha256=null when the historical prompt preimage was not retained. Do not invent a prompt digest. Conformance provenance is intentionally incomplete and cannot support a scoring claim. Conformance mode is an explicit API/CLI argument plus schema-validated case_kind; tags such as conformance-fixture cannot bypass scoring requirements, including on a complete 360-case file. Conformance mode emits no suite manifest."
+  },
+  "authorship_rule": {
+    "fictional_research_corpus_and_cases": "A fictional research corpus and its cases may be AI-authored. Question authorship and oracle authorship are recorded separately on every case.",
+    "method": "Author method is human, model, or human_edited_model. different_model_family is not an authorship method; it is a cross-role validation result.",
+    "reviewer_kind": "human or model.",
+    "model_family_registry": "Canonical family IDs are the lowercase slugs bound in model-family-registry-v1.json: xai-grok, openai-gpt, anthropic-claude, google-gemini. Each declared model_family_id plus exact model_id must resolve through that registry. Aliases such as grok, grok-4.6, chatgpt, or arbitrary novel slugs are not accepted as family IDs. Registry resolution fail-closes when the registry is unavailable or the family/model mapping is unknown. This validates declared provenance against a controlled registry; it cannot prove which external model actually ran.",
+    "independent_review": "Every scoring case must be independently semantically reviewed by a model whose resolved canonical family ID differs from both authors, or by a human, with review provenance recorded on oracle_review. Deterministic oracle validation does not perform or imply that review.",
+    "human_or_owner_approval_still_required_for": [
+      "real company authority",
+      "production promotion",
+      "answer-quality claims beyond research benchmarking"
+    ]
+  },
+  "independent_scenarios": {
+    "development": 120,
+    "validation": 120,
+    "test": 120,
+    "per_query_class_per_split": 15,
+    "scenario_identity": "scenario_id is the independent counting and weighting unit. All cases sharing it must have identical split, query_class, case_kind, scope, oracle, oracle_authorship, oracle_review, and metric applicability. variant_id must be unique within a scenario. Only case_id, variant_id, question text/hash, and question-authorship provenance may differ. A scenario must not cross split, class, case kind, scope, or oracle."
+  },
+  "paraphrase_policy": "Variants share one scenario_id and never increase the independent-scenario denominator. Metrics average applicable variants within a scenario, then average scenarios that have a defined value.",
+  "query_classes": [
+    "exact_factual",
+    "semantic_paraphrase",
+    "numeric_conditional",
+    "temporal",
+    "authorization",
+    "unknown_oos",
+    "multi_record",
+    "adversarial_conflicting"
+  ],
+  "zero_sufficient_set_semantics": {
+    "supported": "support_label=supported requires at least one nonempty sufficient set.",
+    "conflicting": "support_label=conflicting requires at least one nonempty set containing the conflicting evidence.",
+    "unknown_oos": "query_class=unknown_oos requires zero sufficient sets, support_label=unsupported, publication=refused, and disposition_reason=out_of_scope. disposition_reason=out_of_scope requires query_class=unknown_oos.",
+    "zero_set_dispositions": "unauthorized_actor, no_authorized_evidence, stale_or_future_only, and ambiguous_question require zero sufficient sets.",
+    "not_every_case": "Not every case has one or more sufficient sets. OOS and no-authorized-evidence refusals have zero."
+  },
+  "evidence_applicability": {
+    "complete_scoring_suite": "Every complete scoring split and query class records evidence-bearing and zero-set counts plus total_scenario_count=15. The two derived counts must partition all 15 independent scenarios. unknown_oos is evidence-bearing 0 and zero-set 15. authorization authorized-evidence-bearing plus denied-zero-set must equal 15, with each at least 1. Every other non-OOS class must include at least one evidence-bearing scenario and the two counts must still partition all 15.",
+    "undefined_metric": "If a required metric has no applicable scenario after errors, that metric is undefined and Gate 2 evaluation cannot pass or select a winner.",
+    "conformance_fixture": "Derived applicability counts belong on a future frozen suite manifest. They are not fabricated for the conformance fixture."
+  },
+  "separation_of_duties": {
+    "question_author_oracle_author_semantic_reviewer": "Scoring cases require pairwise-distinct session IDs for question authorship, oracle authorship, and semantic review.",
+    "model_review": "When the reviewer is a model, the reviewer canonical model-family ID resolved from the bound registry must differ from both the question-author and oracle-author resolved family IDs.",
+    "test_split": "Every test-split question-author, oracle-author, and reviewer role must be independent from retriever tuning.",
+    "conformance_exception": "A conformance fixture generated in one session may name that same session on question and oracle authorship and may leave oracle_review pending. That fixture is not a scoring suite."
+  },
+  "sealed_test_policy": {
+    "plaintext_staging_bundle": "Full test cases plus per-case salts are a plaintext_staging_bundle written only to a caller-supplied path outside the repository. Development and validation artifacts have externally_encrypted_artifact_bound=false. Plaintext staging is never a sealed bundle.",
+    "encrypted_artifact": "Scoring-suite finalization requires a caller-supplied age-x25519-v1 externally encrypted artifact descriptor (encryption_profile_id=age-x25519-v1, tool_family=age, tool_version nonempty, recipient_key_fingerprint_sha256, encrypted_artifact_path, encrypted_artifact_sha256). The encrypted file must exist outside the repository and match its declared SHA-256 of exact ciphertext bytes. The suite manifest binds the hash and never publishes the path, recipient key, salt, question, oracle, or a digest of full plaintext test cases. plaintext, cat, none, ZIP/password, archive-only, and unknown profiles are prohibited. This runtime does not implement or decrypt age and does not prove the ciphertext decrypts to the staged bytes.",
+    "public_suite_test_fields": "The frozen suite test split may bind only the redacted public-test JSONL SHA-256, ordered salted-question-commitments SHA-256, the age-x25519-v1 ciphertext SHA-256, and public case/scenario/class counts. No public suite field may contain or be defined as a digest of full test questions, full oracles, salts, or plaintext staging bytes.",
+    "public_repository": "The public repository carries only the redacted public form and question commitments.",
+    "opening_retires": "Opening the test split retires it. Publishing plaintext test questions invalidates any claim that the split remained hidden.",
+    "conformance_mode": "Conformance mode may write plaintext staging under a temporary directory and must return scoring_suite=false and externally_encrypted_artifact_bound=false. It must never emit a scoring suite manifest."
+  },
+  "suite_lifecycle": {
+    "frozen_success_only": "An emitted suite freeze manifest is status=frozen with gate_1_status=passed and must carry complete counts, completed reviews, deterministic validation pass, semantic dedup binding, public commitments, evidence-applicability counts, and the encrypted test binding.",
+    "no_draft_or_failure_manifest": "Draft authoring state lives in case files. Validation failures live in validation reports and produce no suite manifest. This freeze schema does not model draft, validation_failed, not_run, or failed branches.",
+    "repository": "The repository remains Gate 1 not_run until actual 360 scoring cases exist. Conformance mode emits no suite manifest."
+  },
+  "phase_boundary": {
+    "gate_1": "Gate 1 freezes corpus, cases, oracles, split commitments, and metrics only. It defines metrics but selects no retriever. It does not bind, accept, or placeholder a retrieval-configuration digest.",
+    "gate_2": "Gate 2 must introduce a separately versioned retrieval-execution contract containing complete implementation revisions, BM25 analysis/scoring/ties, dense templates/pooling/similarity, fusion formula/constants, reranker pipeline, seeds, limits, and output tie-breaking. That configuration is frozen from validation results before sealed test opening. Its verified digest must be bound into every Gate 2 execution trace or result. Test opening without that verified artifact is prohibited.",
+    "no_gate_1_retriever": "No retriever is selected or test-opened by Gate 1."
+  },
+  "scoring_suite_freeze": {
+    "rejects_before_write_when": [
+      "any case has case_kind=conformance",
+      "any semantic review is pending or semantically_reviewed is false",
+      "question-author, oracle-author, and reviewer sessions are not pairwise distinct",
+      "a model reviewer resolved family matches either model author family",
+      "a declared family or model_id is absent from the bound registry",
+      "any test-split role is not independent from retriever tuning",
+      "120/120/120 independent scenarios or 15-per-class-per-split counts fail",
+      "evidence-applicability class requirements fail",
+      "any deterministic oracle check fails",
+      "the encrypted artifact descriptor is absent, not age-x25519-v1, inside the repository, or hash-mismatched",
+      "corpus identity constants or recomputed freeze-manifest bytes mismatch"
+    ],
+    "successful_freeze": "A successful complete scoring-suite freeze creates status=frozen and gate_1_status=passed after in-memory suite-manifest validation. Plaintext staging and public files are published only after that validation. Conformance, incomplete, and validation-failure paths emit no suite manifest."
+  },
+  "statistical_policy": {
+    "screening_suite": "15-per-class is a screening suite, not a confirmatory sample.",
+    "reporting": "Per-class results are mandatory diagnostics. They must be reported with counts and uncertainty and are not separate winners.",
+    "winner_claims": "Per-class winner claims from differences smaller than one case are prohibited.",
+    "selection_unit": "one_global_candidate_arm",
+    "winner_selection": "After Gate 2 validation, aggregate validation metrics across independent scenarios using the v3 weighting rules. The lowest-complexity global arm that satisfies every frozen validation threshold and safety gate is selected. Intra-tier ties use lexicographic frozen candidate ID. Controls never win. Class-specific routing is a future challenger requiring a separately evaluated query classifier; it cannot be inferred from oracle query-class labels at runtime. Executable thresholds and retrieval-pipeline configuration belong to the future Gate 2 contract, not this Gate 1 programme."
+  }
+}

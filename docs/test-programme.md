@@ -66,18 +66,25 @@ must not claim that property.
 
 ## Gate 1 — Frozen M1 retrieval benchmark
 
-Status: contract frozen; corpus and cases `not_run`.
+Status: v3 contract frozen; corpus frozen; Gate 1 not_run.
 
-The v2 contract under `evaluation/m1/` requires:
+The v3 contract under `evaluation/m1/` is frozen
+(`v3 contract frozen; corpus frozen; Gate 1 not_run`).
+The corpus is frozen. The 360 scoring cases are unbuilt, so this gate stays
+`not_run`. It requires:
 
 - 120 independent development scenarios;
 - 120 independent validation scenarios;
-- 120 independent sealed test scenarios;
+- 120 independent test scenarios, staged as plaintext outside the repository and
+  sealed only by an externally encrypted artifact for a scoring suite;
+- 15 independent scenarios per query class per split;
 - at least 40 synthetic authority records;
 - linked paraphrase variants that do not inflate scenario counts;
 - exact and reviewed semantic cross-split deduplication;
-- independently authored questions with hashes;
-- one or more sufficient oracle-evidence sets per case.
+- independently authored questions with hashes and required `known_at`;
+- separate question-author, oracle-author, and review provenance;
+- supported and conflicting evidence-bearing cases have at least one nonempty
+  sufficient set; OOS and no-authorized-evidence refusals have zero.
 
 The eight required classes are exact factual, semantic paraphrase, numeric/conditional,
 temporal, authorization, unknown/out-of-scope, multi-record, and
@@ -86,13 +93,22 @@ adversarial/conflicting.
 A Grok-authored and Grok-remediated fictional synthetic authority corpus now exists
 under `evaluation/m1/corpus/`. Independent ChatGPT content review concluded
 `CONTENT_APPROVED`. Independent Cursor code review concluded `CODE_APPROVED`. That
-review is of fictional benchmark content. It is not human or organizational approval,
-and it does not satisfy the frozen v2 owner-labelled requirement. A later versioned
-contract is required before replacing owner labelling with AI-reviewed synthetic data
-for promotion. The 360 scenarios and oracles remain unbuilt, so this gate stays
-`not_run`. Corpus status `reviewed` is not `frozen`. Validate the corpus with
-`.venv/bin/python scripts/validate_m1_corpus.py`. Real company authority still requires
-an organization-defined trusted approval process.
+review is of fictional benchmark content. It is not human or organizational approval.
+The corpus is frozen under `evaluation/m1/corpus-freeze-manifest.json`. Frozen
+contract v3 governs case authoring for this fictional research corpus. Human or
+owner approval remains required for real company authority, production promotion,
+and answer-quality claims. The 360 scoring scenarios and oracles remain unbuilt, so
+this gate stays `not_run`. Gate 1 status belongs on a scoring suite manifest, not
+`programme-v3.json`. Gate 1 freezes corpus, cases, oracles, split commitments,
+and metrics only; it selects no retriever. The Gate 2 execution contract is deferred
+and the test split remains unopened. Deterministic oracle validation checks
+corpus-grounded invariants only and is not semantic proof. The 16-case
+conformance fixture is non-scoring and records pending semantic review and
+intentionally incomplete prompt provenance in its own case files. Plaintext
+test staging is not a sealed bundle; sealing requires an external encrypted
+artifact. Validate the corpus with `.venv/bin/python scripts/validate_m1_corpus.py`.
+Real company authority still requires an organization-defined trusted approval
+process.
 
 ## Gate 2 — Retrieval bake-off
 
@@ -104,8 +120,12 @@ thresholds are frozen.
 
 Unauthorized exposure and stale-current-version retrieval have zero tolerance. Other metrics
 include recall at 1 and 5, MRR, nDCG, wrong and empty retrieval rates, out-of-scope loading and
-rejection, latency, build/update time, and peak memory. The simplest passing method wins each
-query class.
+rejection, latency, build/update time, and peak memory. Gate 1 defines those metrics but
+selects no retriever. Gate 2 must introduce a separately versioned retrieval-execution
+contract, freeze it from validation before sealed test opening, and bind its verified digest
+in every Gate 2 trace or result. After that validation, one global candidate arm is selected:
+the lowest-complexity arm that meets every frozen validation threshold and safety gate.
+Per-class metrics are mandatory diagnostics, not separate winners.
 
 ## Gate 3 — Answering and verification
 

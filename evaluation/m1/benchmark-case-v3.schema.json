@@ -1,0 +1,584 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/benchmark-case-v3.schema.json",
+  "title": "GKR M1 benchmark case v3",
+  "description": "Case schema for M1 v3. Hash preimages follow profile ID gkr-m1-hash-profile-v1. Scoring cases are the production benchmark shape and require completed independent semantic review plus pairwise-distinct question-author, oracle-author, and reviewer sessions. Conformance cases are machinery-only, never scoreable, and may carry pending semantic review and intentionally incomplete prompt provenance (prompt_retained=false, prompt_sha256=null). JSON Schema enforces structure, zero-set conditionals, out_of_scope <=> unknown_oos, and lowercase family-ID syntax. Canonical family membership, exact model-ID mapping, and reviewer-family independence are enforced by the authority-aware validator against the bound model-family registry; the validator fail-closes on an unknown family or family/model mapping. Registry validation checks declared provenance only and cannot prove which external model actually ran. support_label=supported requires at least one nonempty sufficient set. support_label=conflicting requires at least one nonempty set containing the conflicting evidence. unknown_oos requires zero sufficient sets, support_label=unsupported, publication=refused, and disposition_reason=out_of_scope. disposition_reason=out_of_scope requires query_class=unknown_oos. unauthorized_actor, no_authorized_evidence, stale_or_future_only, and ambiguous_question require zero sufficient sets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "hash_profile_id",
+    "case_id",
+    "scenario_id",
+    "variant_id",
+    "split",
+    "query_class",
+    "case_kind",
+    "question",
+    "question_sha256",
+    "question_authorship",
+    "oracle_authorship",
+    "oracle_review",
+    "scope",
+    "oracle"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-case-v3"},
+    "hash_profile_id": {"const": "gkr-m1-hash-profile-v1"},
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$",
+      "description": "Independent counting and weighting unit. All cases sharing a scenario_id must have identical split, query_class, case_kind, scope, oracle, oracle_authorship, oracle_review, and metric applicability. Only case_id, variant_id, question text/hash, and question-authorship provenance may differ. A scenario must not cross split, class, case kind, scope, or oracle."
+    },
+    "variant_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Unique within a scenario_id."
+    },
+    "split": {
+      "enum": ["development", "validation", "test"]
+    },
+    "query_class": {
+      "enum": [
+        "exact_factual",
+        "semantic_paraphrase",
+        "numeric_conditional",
+        "temporal",
+        "authorization",
+        "unknown_oos",
+        "multi_record",
+        "adversarial_conflicting"
+      ]
+    },
+    "case_kind": {
+      "enum": ["scoring", "conformance"],
+      "description": "scoring is the default production benchmark shape. conformance is machinery-only, never scoreable, and never eligible for a scoring suite manifest. Tags must not change case_kind or bypass scoring requirements. Conformance provenance may be intentionally incomplete and cannot support a scoring claim."
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "question_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of the gkr-m1-hash-profile-v1 normalized question (NFKC, Unicode whitespace runs to U+0020, trim, Unicode case-fold, UTF-8)."
+    },
+    "question_authorship": {"$ref": "#/$defs/authorshipRole"},
+    "oracle_authorship": {"$ref": "#/$defs/authorshipRole"},
+    "oracle_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provenance for an independent semantic review claim. Deterministic validation must not set, infer, or overwrite semantically_reviewed. Pending review means no review has occurred; completed review is required for scoring cases. Reviewer kind is human or model. Family difference is a cross-role validation result against the bound model-family registry. Family IDs are canonical lowercase slugs from that registry (xai-grok, openai-gpt, anthropic-claude, google-gemini). Aliases such as grok, grok-4.6, or chatgpt are not family IDs.",
+      "required": [
+        "status",
+        "semantically_reviewed",
+        "reviewer_kind",
+        "reviewer_identity",
+        "reviewer_session_id",
+        "reviewer_model_family_id",
+        "reviewer_model_id",
+        "reviewer_model_revision",
+        "reviewer_prompt_sha256",
+        "review_sha256",
+        "independent_from_retriever_tuning"
+      ],
+      "properties": {
+        "status": {
+          "enum": ["pending", "completed"]
+        },
+        "semantically_reviewed": {
+          "type": "boolean"
+        },
+        "reviewer_kind": {
+          "type": ["string", "null"],
+          "enum": ["human", "model", null]
+        },
+        "reviewer_identity": {
+          "type": ["string", "null"]
+        },
+        "reviewer_session_id": {
+          "type": ["string", "null"]
+        },
+        "reviewer_model_family_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "reviewer_model_id": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "reviewer_model_revision": {
+          "type": ["string", "null"]
+        },
+        "reviewer_prompt_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the review prompt under gkr-m1-hash-profile-v1 prompt preimage (CRLF/CR to LF, then UTF-8)."
+        },
+        "review_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the exact raw bytes of the review artifact. This is a digest of the review record, not proof that the oracle is semantically correct."
+        },
+        "independent_from_retriever_tuning": {
+          "type": ["boolean", "null"]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"const": "pending"}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "semantically_reviewed": {"const": false},
+              "reviewer_kind": {"type": "null"},
+              "reviewer_identity": {"type": "null"},
+              "reviewer_session_id": {"type": "null"},
+              "reviewer_model_family_id": {"type": "null"},
+              "reviewer_model_id": {"type": "null"},
+              "reviewer_model_revision": {"type": "null"},
+              "reviewer_prompt_sha256": {"type": "null"},
+              "review_sha256": {"type": "null"},
+              "independent_from_retriever_tuning": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"status": {"const": "completed"}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "semantically_reviewed": {"const": true},
+              "reviewer_kind": {
+                "enum": ["human", "model"]
+              },
+              "reviewer_identity": {"type": "string", "minLength": 1},
+              "reviewer_session_id": {"type": "string", "minLength": 1},
+              "review_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "independent_from_retriever_tuning": {"const": true}
+            },
+            "required": [
+              "semantically_reviewed",
+              "reviewer_kind",
+              "reviewer_identity",
+              "reviewer_session_id",
+              "review_sha256",
+              "independent_from_retriever_tuning"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {"const": "completed"},
+              "reviewer_kind": {"const": "human"}
+            },
+            "required": ["status", "reviewer_kind"]
+          },
+          "then": {
+            "properties": {
+              "reviewer_model_family_id": {"type": "null"},
+              "reviewer_model_id": {"type": "null"},
+              "reviewer_model_revision": {"type": "null"},
+              "reviewer_prompt_sha256": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {"const": "completed"},
+              "reviewer_kind": {"const": "model"}
+            },
+            "required": ["status", "reviewer_kind"]
+          },
+          "then": {
+            "properties": {
+              "reviewer_model_family_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              },
+              "reviewer_model_id": {"type": "string", "minLength": 1},
+              "reviewer_model_revision": {"type": "string", "minLength": 1},
+              "reviewer_prompt_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "groups", "as_of", "known_at"],
+      "properties": {
+        "actor": {"type": ["string", "null"]},
+        "groups": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "known_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Required timezone-aware RFC 3339 instant. Every case must be reproducible at an exact observation time; null is not permitted."
+        }
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sufficient_reference_sets",
+        "forbidden_references",
+        "publication",
+        "support_label"
+      ],
+      "properties": {
+        "sufficient_reference_sets": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string"},
+            "uniqueItems": true
+          }
+        },
+        "forbidden_references": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "publication": {
+          "enum": ["published", "refused", "withheld"]
+        },
+        "support_label": {
+          "enum": ["supported", "unsupported", "conflicting"]
+        },
+        "disposition_reason": {
+          "enum": [
+            "no_authorized_evidence",
+            "unauthorized_actor",
+            "out_of_scope",
+            "conflicting_authority",
+            "ambiguous_question",
+            "stale_or_future_only"
+          ]
+        },
+        "strict_answer": {
+          "type": ["string", "null"]
+        },
+        "required_claims": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "forbidden_claims": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "required_citations": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true,
+      "description": "Optional labels. Tags never change case_kind and never bypass scoring provenance, review, or suite-freeze requirements."
+    },
+    "oracle_notes": {
+      "type": "string",
+      "description": "Optional mechanics-only notes. Must not contain values, answers, dispositions, reference choices, or conflict labels."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"case_kind": {"const": "scoring"}},
+        "required": ["case_kind"]
+      },
+      "then": {
+        "properties": {
+          "oracle_review": {
+            "properties": {
+              "status": {"const": "completed"},
+              "semantically_reviewed": {"const": true}
+            }
+          },
+          "question_authorship": {"$ref": "#/$defs/scoringAuthorshipPrompt"},
+          "oracle_authorship": {"$ref": "#/$defs/scoringAuthorshipPrompt"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle": {
+            "properties": {
+              "publication": {"enum": ["refused", "withheld"]}
+            },
+            "required": ["publication"]
+          }
+        },
+        "required": ["oracle"]
+      },
+      "then": {
+        "properties": {
+          "oracle": {
+            "required": ["disposition_reason"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle": {
+            "properties": {"support_label": {"const": "supported"}},
+            "required": ["support_label"]
+          }
+        },
+        "required": ["oracle"]
+      },
+      "then": {
+        "properties": {
+          "oracle": {
+            "properties": {
+              "sufficient_reference_sets": {"minItems": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle": {
+            "properties": {"support_label": {"const": "conflicting"}},
+            "required": ["support_label"]
+          }
+        },
+        "required": ["oracle"]
+      },
+      "then": {
+        "properties": {
+          "oracle": {
+            "properties": {
+              "sufficient_reference_sets": {
+                "minItems": 1,
+                "description": "At least one nonempty set must contain the conflicting evidence."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"query_class": {"const": "unknown_oos"}},
+        "required": ["query_class"]
+      },
+      "then": {
+        "properties": {
+          "oracle": {
+            "properties": {
+              "sufficient_reference_sets": {"maxItems": 0},
+              "support_label": {"const": "unsupported"},
+              "publication": {"const": "refused"},
+              "disposition_reason": {"const": "out_of_scope"}
+            },
+            "required": ["disposition_reason"]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle": {
+            "properties": {"disposition_reason": {"const": "out_of_scope"}},
+            "required": ["disposition_reason"]
+          }
+        },
+        "required": ["oracle"]
+      },
+      "then": {
+        "properties": {
+          "query_class": {"const": "unknown_oos"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "oracle": {
+            "properties": {
+              "disposition_reason": {
+                "enum": [
+                  "unauthorized_actor",
+                  "no_authorized_evidence",
+                  "stale_or_future_only",
+                  "ambiguous_question"
+                ]
+              }
+            },
+            "required": ["disposition_reason"]
+          }
+        },
+        "required": ["oracle"]
+      },
+      "then": {
+        "properties": {
+          "oracle": {
+            "properties": {
+              "sufficient_reference_sets": {"maxItems": 0}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "scoringAuthorshipPrompt": {
+      "if": {
+        "properties": {"method": {"enum": ["model", "human_edited_model"]}},
+        "required": ["method"]
+      },
+      "then": {
+        "properties": {
+          "prompt_retained": {"const": true},
+          "prompt_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "authorshipRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "session_id",
+        "identity",
+        "model_family_id",
+        "model_id",
+        "model_revision",
+        "prompt_retained",
+        "prompt_sha256",
+        "independent_from_retriever_tuning"
+      ],
+      "properties": {
+        "method": {
+          "enum": ["human", "model", "human_edited_model"],
+          "description": "Authorship method. different_model_family is not a method; pairwise family difference is a cross-role validation result comparing canonical model-family IDs resolved from the bound registry."
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_family_id": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9._-]*$",
+          "description": "Canonical family ID from the bound registry. Aliases such as grok, grok-4.6, or chatgpt are not accepted."
+        },
+        "model_id": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "description": "Exact declared model ID. Must match an allowed prefix or pattern for model_family_id in the bound registry."
+        },
+        "model_revision": {
+          "type": ["string", "null"]
+        },
+        "prompt_retained": {
+          "type": "boolean",
+          "description": "true when the exact authoring prompt preimage was retained and hashed. Scoring model authorship requires true. Conformance may set false when the historical prompt was not retained; do not invent a digest."
+        },
+        "prompt_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the authoring prompt under gkr-m1-hash-profile-v1 prompt preimage. Required when prompt_retained=true; null when prompt_retained=false."
+        },
+        "independent_from_retriever_tuning": {
+          "const": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"method": {"const": "human"}},
+            "required": ["method"]
+          },
+          "then": {
+            "properties": {
+              "model_family_id": {"type": "null"},
+              "model_id": {"type": "null"},
+              "model_revision": {"type": "null"},
+              "prompt_retained": {"const": false},
+              "prompt_sha256": {"type": "null"}
+            }
+          },
+          "else": {
+            "properties": {
+              "model_family_id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              },
+              "model_id": {"type": "string", "minLength": 1},
+              "model_revision": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"prompt_retained": {"const": true}},
+            "required": ["prompt_retained"]
+          },
+          "then": {
+            "properties": {
+              "prompt_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"prompt_retained": {"const": false}},
+            "required": ["prompt_retained"]
+          },
+          "then": {
+            "properties": {
+              "prompt_sha256": {"type": "null"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import hashlib
 import json
-import re
-import unicodedata
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+from gkr.m1_hash import normalize_question, question_digest
+
+__all__ = ["normalize_question", "question_digest", "validate_m1_cases"]
 
 _SPLITS = ("development", "validation", "test")
 _QUERY_CLASSES = {
@@ -115,12 +116,6 @@ def validate_m1_cases(
         "query_classes": dict(sorted(class_counts.items())),
         "complete": not allow_incomplete,
     }
-
-
-def question_digest(question: str) -> str:
-    normalized = unicodedata.normalize("NFKC", question)
-    normalized = re.sub(r"\s+", " ", normalized).strip().casefold()
-    return hashlib.sha256(normalized.encode()).hexdigest()
 
 
 def _load_jsonl(path: str | Path) -> list[tuple[int, dict[str, Any]]]:

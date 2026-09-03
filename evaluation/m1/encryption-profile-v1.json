@@ -1,0 +1,29 @@
+{
+  "schema_version": "gkr-m1-encryption-profile-v1",
+  "profile_id": "age-x25519-v1",
+  "tool_family": "age",
+  "authenticated_encryption_required": true,
+  "recipient_based_x25519_required": true,
+  "v3_accepted_profile_ids": ["age-x25519-v1"],
+  "prohibited": {
+    "schemes": ["plaintext", "none", "unknown"],
+    "tools": ["cat", "none", "zip", "password-zip", "arbitrary"],
+    "constructions": [
+      "password_zip",
+      "archive_only",
+      "plaintext",
+      "unknown_scheme",
+      "arbitrary_tool"
+    ]
+  },
+  "recipient_key_fingerprint_sha256": {
+    "preimage": "UTF-8 bytes of the canonical age recipient string, with no added newline or other normalization",
+    "encoding": "64 lowercase hexadecimal characters"
+  },
+  "encrypted_artifact_sha256": {
+    "preimage": "exact ciphertext bytes of the external age artifact",
+    "encoding": "64 lowercase hexadecimal characters"
+  },
+  "limitation": "This runtime does not implement or decrypt age and cannot prove that ciphertext corresponds to staged plaintext. Matching profile identifiers and the ciphertext SHA-256 are a strict external attestation boundary, not cryptographic verification by this runtime.",
+  "note": "v3 scoring suites accept only profile_id age-x25519-v1. Development and validation artifacts must remain plaintext staging with externally_encrypted_artifact_bound=false. Test must bind an external age-x25519-v1 artifact with externally_encrypted_artifact_bound=true."
+}

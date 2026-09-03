@@ -40,10 +40,12 @@ Add or update tests next to the behavior you change. The frozen M0 suite and the
 M1 schema contracts are regression gates: do not weaken unauthorized-exposure or
 stale-version cases, and do not edit frozen `evaluation/m1/` files in place. A
 schema change needs a new contract version. See the
-[test programme](docs/test-programme.md) for gate status and exit conditions.
+[test programme](docs/test-programme.md) for gate status and exit conditions
+(`v3 contract frozen; corpus frozen; Gate 1 not_run`).
 Do not commit M1 case JSONL until it has been validated against the active contract. Public
-test manifests contain hashes, not the sealed plaintext test questions used for final
-evaluation.
+test manifests contain hashes, not the plaintext test questions used for final evaluation.
+Plaintext staging of those questions is not a sealed bundle; sealing is an external
+encrypted artifact bound by hash.
 
 ## What not to commit
 

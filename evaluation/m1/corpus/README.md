@@ -8,10 +8,15 @@ organization.
 Grok authored and remediated this fictional corpus. Independent ChatGPT content review
 concluded `CONTENT_APPROVED`. Independent Cursor code review concluded `CODE_APPROVED`.
 That is AI review of fictional benchmark content, not human or organizational approval.
-The frozen v2 owner-labelled requirement is unchanged and unmet. A later versioned
-contract is required before replacing owner labelling with AI-reviewed synthetic data
-for promotion. The 360 scenarios and oracles are unbuilt, and Gate 1 remains `not_run`.
-The corpus status is `reviewed`, which is not `frozen`.
+The frozen v2 owner-labelled requirement is unchanged and unmet. Frozen contract
+v3 now governs case authoring for this AI-reviewed fictional research corpus.
+Status: v3 contract frozen; corpus frozen; Gate 1 not_run.
+Human or owner approval remains required for real company authority, production promotion, and
+answer-quality claims. The 360 scoring scenarios and oracles are unbuilt, and Gate 1
+remains `not_run`. The corpus is frozen under `../corpus-freeze-manifest.json`.
+The 16-case conformance fixture is non-scoring machinery with pending semantic
+review and intentionally incomplete prompt provenance in its own case files.
+Plaintext staging of test cases is not sealing. Gate 1 selects no retriever.
 
 ## Synthetic organization
 
@@ -77,9 +82,15 @@ The validator also reports event-level relation and rule totals separately.
 - `authority.jsonl` — immutable approved or retired authority events, ordered by
   `record_id` then `version`.
 - `corpus-manifest.json` — counts, coverage, the SHA-256 of `authority.jsonl`, and a
-  content digest over ordered record references and statement hashes.
+  content digest over ordered record references and statement hashes. Status is
+  `frozen`.
+- `../corpus-freeze-manifest.json` — v3 freeze binding: authority bytes, content
+  digest, manifest digest, counts, review provenance, and source commit `d308888`.
 - `../corpus-manifest.schema.json` — versioned manifest schema
-  `gkr-m1-corpus-manifest-v1`. Frozen v1/v2 case contracts are unchanged.
+  `gkr-m1-corpus-manifest-v1`. Frozen v1/v2 case contracts are unchanged. Case
+  authoring is governed by frozen contract v3. Full test cases plus salts are
+  plaintext staging outside the repository, never a sealed bundle. Scoring-suite
+  sealing requires an externally encrypted artifact.
 
 ## Regenerating and validating hashes
 

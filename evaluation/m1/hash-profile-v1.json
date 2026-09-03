@@ -1,0 +1,99 @@
+{
+  "schema_version": "gkr-m1-hash-profile-v1",
+  "profile_id": "gkr-m1-hash-profile-v1",
+  "digest": "SHA-256",
+  "hex_encoding": "64 lowercase hexadecimal characters",
+  "case_id_order": "Every split uses the same ascending case_id sort for split-case JSONL and question-list hashes. Development, validation, and test do not use encounter order for those digests.",
+  "preimages": {
+    "normalized_question": {
+      "steps": [
+        "Unicode NFKC",
+        "replace every Unicode whitespace run with U+0020",
+        "trim leading and trailing U+0020",
+        "Unicode case-fold",
+        "UTF-8 encode",
+        "SHA-256"
+      ],
+      "used_by": ["question_sha256"]
+    },
+    "prompt": {
+      "steps": [
+        "replace CRLF and CR with LF",
+        "no other normalization",
+        "UTF-8 encode the resulting text",
+        "SHA-256"
+      ],
+      "used_by": ["prompt_sha256", "reviewer_prompt_sha256"]
+    },
+    "review_artifact": {
+      "steps": ["SHA-256 of the exact raw bytes of the review artifact"],
+      "used_by": ["review_sha256"]
+    },
+    "encrypted_artifact": {
+      "steps": ["SHA-256 of the exact ciphertext bytes"],
+      "used_by": ["encrypted_artifact_sha256"]
+    },
+    "canonical_json_object": {
+      "steps": [
+        "recursively sort object keys",
+        "JSON dump with compact separators (',', ':')",
+        "ensure_ascii=false",
+        "no trailing whitespace",
+        "UTF-8 encode",
+        "SHA-256"
+      ],
+      "used_by": ["dedup_report_sha256", "canonical object digests"]
+    },
+    "canonical_jsonl": {
+      "steps": [
+        "sort records by case_id using ordinary UTF-8 string order",
+        "emit each record as one canonical JSON object followed by one LF",
+        "SHA-256 of the resulting UTF-8 bytes"
+      ],
+      "used_by": [
+        "development and validation cases_sha256",
+        "test public_cases_sha256 of redacted public cases only"
+      ]
+    },
+    "question_list_or_commitment": {
+      "steps": [
+        "collect question_sha256 or public question_commitment_sha256 values",
+        "order the array by the corresponding case_id",
+        "canonical compact JSON array (ensure_ascii=false, separators (',', ':'), no trailing whitespace)",
+        "UTF-8 encode",
+        "SHA-256"
+      ],
+      "used_by": [
+        "development and validation questions_sha256",
+        "test question_commitments_sha256"
+      ]
+    },
+    "dedup_report": {
+      "choice": "canonical JSON object bytes",
+      "steps": [
+        "treat the dedup report as a JSON object",
+        "hash via canonical_json_object",
+        "do not hash pretty-printed or key-unsorted variants"
+      ],
+      "used_by": ["deduplication.report_sha256"]
+    },
+    "corpus_manifest_and_files": {
+      "steps": ["SHA-256 of exact raw file bytes"],
+      "used_by": [
+        "authority_jsonl_sha256",
+        "corpus_manifest_sha256",
+        "corpus_freeze_manifest_sha256",
+        "contract-manifest file digests"
+      ]
+    },
+    "question_commitment": {
+      "steps": [
+        "32-byte salt || UTF-8 of the gkr-m1-hash-profile-v1 normalized question",
+        "SHA-256"
+      ],
+      "used_by": ["question_commitment_sha256"]
+    }
+  },
+  "note": "Independently conforming authors must use these preimages. Case folding or whitespace collapsing that differs from this profile is a different digest. Development and validation may bind canonical full-case JSONL digests. The public suite test split must not bind a digest of full test questions, full oracles, salts, or plaintext staging bytes. The freeze API binds a caller-supplied SHA-256 attestation digest for the dedup report; it does not load that file or recompute its preimage. Gate 1 binds no retrieval-configuration digest.",
+  "attestation_boundary": "dedup_report_sha256 is externally computed under this profile. Runtime content verification of that artifact is out of freeze scope. A Gate 2 retrieval-execution digest, when it exists, is outside this Gate 1 hash profile binding."
+}

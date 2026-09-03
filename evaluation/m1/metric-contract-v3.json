@@ -1,0 +1,357 @@
+{
+  "schema_version": "gkr-m1-retrieval-metrics-v3",
+  "status": "frozen-before-scoring-case-authoring",
+  "supersedes": "gkr-m1-retrieval-metrics-v2",
+  "hash_profile_id": "gkr-m1-hash-profile-v1",
+  "note": "This metric contract is frozen before scoring-case authoring. Gate 1 remains not_run. Gate 1 defines these metrics but selects no retriever. Executable thresholds and retrieval-pipeline configuration belong to a future Gate 2 execution contract. Controls are never selected as winners. Oracle-evidence latency is excluded from competitive comparison. v3 contract frozen; corpus frozen; Gate 1 not_run.",
+  "returned_list": {
+    "definition": "An ordered returned evidence list is the retriever output after discarding execution errors, then deduplicating references while retaining the first occurrence of each reference. All metrics and gates below inspect this unique ordered list unless a definition names a top-k prefix.",
+    "empty_ranking": "An empty returned list has length 0 after deduplication and is a valid non-error result.",
+    "execution_error": "A run is an execution error when the retriever does not produce a valid ordered list (crash, timeout without a list, malformed output). Error runs are counted only in retrieval_error_rate. They are never counted as a correct empty ranking, never counted as a correct OOS rejection, and never counted as an unauthorized or stale exposure."
+  },
+  "cutoffs": {
+    "top_k": [1, 5],
+    "top_k_metrics": "set_success_at_k and best_sufficient_set_recall_at_k use the length-k prefix of the returned list, or the full list if it is shorter than k.",
+    "safety_and_oos_inspect": "forbidden_reference_exposure_rate, empty_retrieval_rate, oos_false_load_rate, oos_correct_rejection_rate, stale_version_retrieval_rate, and unauthorized_record_exposure inspect the complete returned list passed downstream, not only top 1 or top 5."
+  },
+  "aggregation": {
+    "scenario_id": "The independent counting and weighting unit.",
+    "step_1_dedupe": "Deduplicate each returned ranking by reference, retaining the first occurrence, before any metric.",
+    "step_2_applicable_variants": "For every non-error metric, applicable variants are the non-error variants of that scenario for which the metric is applicable. Applicability is a property of metric_id plus query class and sufficient-set shape, not of a supplied numeric value. unknown_oos and other zero-sufficient-set cases are not applicable for set_success_at_k, best_sufficient_set_recall_at_k, MRR, and nDCG even if a number is present. oos_false_load_rate and oos_correct_rejection_rate apply only to unknown_oos; a numeric value on any other class is ignored. Execution-error variants are not applicable for any non-error metric.",
+    "step_3_scenario_value": "Scenario value = arithmetic mean of the metric over applicable variants in that scenario.",
+    "step_4_zero_applicable": "If a scenario has zero applicable variants, exclude that scenario from that metric's denominator. Increment all_variants_error_scenario_count only when execution errors are why an otherwise metric-applicable scenario has zero applicable variants. A scenario that is intrinsically not applicable for the metric, including an all-error unknown_oos scenario under an evidence-set metric, does not increment that count. Do not substitute 0 for the missing scenario value.",
+    "step_5_split_value": "Split value = equal-weight arithmetic mean across scenarios that have a defined value for that metric.",
+    "retrieval_error_rate": "Variant error indicator (1 if execution error, else 0) averaged within the scenario, then equally across all scenarios in the split. Errors are never counted as correct empty/OOS rejection.",
+    "evidence_set_metrics": "set_success_at_k, best_sufficient_set_recall_at_k, MRR, and nDCG use the same error filtering. OOS/zero-sufficient-set cases remain not_applicable and are excluded, not scored as 0.",
+    "safety_gates": "Inspect every valid returned list for every variant. Any unsafe reference on a non-error variant fails the count=0 gate, even if other variants of the same scenario are clean. An execution error is separately an error, not an exposure.",
+    "undefined_required_metric": "If a required metric has no applicable scenario after errors, that metric is undefined and Gate 2 evaluation cannot pass or select a winner."
+  },
+  "weighting": {
+    "unit": "The independent scenario is the averaging unit. Variants that share a scenario_id are averaged first to a single scenario value over applicable variants; scenarios with a defined value are then averaged with equal weight. Variants must not inflate the denominator.",
+    "safety_gates": "Zero-tolerance safety gates apply to every non-error variant of every case-arm run individually. A single unauthorized or stale reference in any non-error variant fails the absolute count gate, even if other variants of the same scenario are clean. Execution errors do not count as exposures."
+  },
+  "arms": {
+    "controls": ["full_authorized_corpus", "oracle_evidence"],
+    "candidates": [
+      "bm25",
+      "dense_candidate_a",
+      "dense_candidate_b",
+      "bm25_dense_rank_fusion",
+      "hybrid_local_reranker"
+    ],
+    "complexity_tiers": [
+      {
+        "tier": 1,
+        "candidates": ["bm25"]
+      },
+      {
+        "tier": 2,
+        "candidates": ["dense_candidate_a", "dense_candidate_b"],
+        "tie_break": "lexicographic frozen candidate ID"
+      },
+      {
+        "tier": 3,
+        "candidates": ["bm25_dense_rank_fusion"]
+      },
+      {
+        "tier": 4,
+        "candidates": ["hybrid_local_reranker"]
+      }
+    ],
+    "selection": {
+      "unit": "one_global_candidate_arm",
+      "controls_never_selected_as_winners": true,
+      "oracle_latency_excluded_from_competitive_comparison": true,
+      "per_query_class_metrics": "mandatory diagnostics, not separate winners",
+      "class_specific_routing": "future challenger requiring a separately evaluated query classifier; cannot be inferred from oracle query-class labels at runtime",
+      "rule": "After Gate 2 validation, aggregate validation metrics across independent scenarios using the v3 weighting rules. The lowest-complexity global arm that satisfies every frozen validation threshold and safety gate is selected. Within a tier, remaining ties use lexicographic frozen candidate ID. Controls never win. Executable thresholds and retrieval-pipeline configuration belong to the future Gate 2 contract."
+    }
+  },
+  "ndcg_target_set": {
+    "name": "S*",
+    "zero_sufficient_sets": "If a case has zero sufficient_reference_sets, including every unknown_oos case, nDCG is not_applicable. The case is excluded from the nDCG average and must not be scored as 0.",
+    "empty_ranking_with_sets": "If sufficient sets exist and the returned list is empty, no set completes. All retrieved fractions are 0. S* is the smallest sufficient set, with remaining ties broken by lexicographically sorted references. DCG of an empty ranking is 0, so nDCG is 0. This is applicable, not not_applicable.",
+    "selection": "S* is chosen deterministically. Let complete_rank(S) be the smallest 1-based rank r such that every reference in S appears in the first r items of the returned list, or infinity if S never completes. If any set completes, consider only sets that complete at the earliest such rank; choose the smallest set size, then the lexicographically smallest sorted-reference tuple. If no set completes, choose the highest |S intersect returned| / |S|, then smaller |S|, then lexicographically sorted references.",
+    "gains": "Each reference in S* has gain 1. Every other reference has gain 0. DCG uses discount 1 / log2(rank + 1) at 1-based rank. IDCG is the DCG of |S*| relevant items placed first. nDCG is DCG/IDCG, or 0 when DCG is 0."
+  },
+  "evidence_set_metrics": {
+    "set_success_at_k": {
+      "definition": "Success if and only if every reference of at least one sufficient_reference_set appears in the top k of the returned list. Zero-sufficient-set cases are not_applicable and are excluded from the average. Execution-error variants are excluded by the aggregation rule."
+    },
+    "best_sufficient_set_recall_at_k": {
+      "definition": "Maximum, over each sufficient_reference_set S, of |S intersect top_k| / |S|. Zero-sufficient-set cases are not_applicable and are excluded from the average. Execution-error variants are excluded by the aggregation rule."
+    },
+    "mrr": {
+      "definition": "Rank r is the smallest 1-based index such that at least one sufficient_reference_set is fully contained in the first r returned references. MRR is 1/r, or 0 if no sufficient set is ever fully contained. Zero-sufficient-set cases are not_applicable and are excluded from the average. Empty ranking with sufficient sets present yields MRR 0. Execution-error variants are excluded by the aggregation rule."
+    },
+    "ndcg": {
+      "definition": "Graded per-reference gain against S* as defined in ndcg_target_set, computed over the complete returned list. Execution-error variants are excluded by the aggregation rule."
+    }
+  },
+  "operational_rates": {
+    "forbidden_reference_exposure_rate": {
+      "replaces": "wrong_record_rate",
+      "event": "A non-error case-arm run whose complete returned list contains any reference listed in that case's forbidden_references.",
+      "cutoff": "complete returned list",
+      "denominator": "non-error applicable case-arm variants after scenario-mean then equal-weight scenario mean; scenarios with zero applicable variants are excluded",
+      "empty_ranking": "not an event",
+      "duplicates": "first occurrence only; a duplicated forbidden reference still counts as one event for that run"
+    },
+    "empty_retrieval_rate": {
+      "event": "A non-error case-arm run whose complete returned list has length 0.",
+      "cutoff": "complete returned list",
+      "denominator": "non-error applicable case-arm variants after scenario-mean then equal-weight scenario mean; scenarios with zero applicable variants are excluded",
+      "empty_ranking": "this event",
+      "duplicates": "not applicable to an empty list"
+    },
+    "retrieval_error_rate": {
+      "event": "A case-arm run in which the retriever did not produce a valid ordered list.",
+      "cutoff": "not applicable",
+      "denominator": "all case-arm variants after variant-then-scenario averaging, including errors; every scenario contributes",
+      "empty_ranking": "an empty valid list is not an error",
+      "duplicates": "not applicable",
+      "never_counted_as": "correct empty retrieval or correct OOS rejection"
+    },
+    "oos_false_load_rate": {
+      "event": "A non-error unknown_oos case-arm run whose complete returned list contains one or more references.",
+      "cutoff": "complete returned list",
+      "denominator": "non-error unknown_oos case-arm variants after scenario-mean then equal-weight scenario mean; all-error OOS scenarios are excluded",
+      "empty_ranking": "not an event",
+      "duplicates": "any positive unique count is an event"
+    },
+    "oos_correct_rejection_rate": {
+      "event": "A non-error unknown_oos case-arm run whose complete returned list has length 0.",
+      "cutoff": "complete returned list",
+      "denominator": "non-error unknown_oos case-arm variants after scenario-mean then equal-weight scenario mean; all-error OOS scenarios are excluded and are not counted as correct rejection",
+      "empty_ranking": "this event",
+      "duplicates": "not applicable"
+    },
+    "stale_version_retrieval_rate": {
+      "event": "A non-error case-arm run whose complete returned list contains any reference that is not the temporally selected approved version for that record_id at the case as_of and known_at.",
+      "cutoff": "complete returned list",
+      "denominator": "non-error applicable case-arm variants after scenario-mean then equal-weight scenario mean; scenarios with zero applicable variants are excluded",
+      "empty_ranking": "not an event",
+      "duplicates": "first occurrence only",
+      "absolute_gate_count": "Count of non-error case-arm-variant runs with at least one stale reference. The absolute gate requires this count to be 0. An execution error is not an exposure. The published rate is the variant-then-scenario average of the event indicator over applicable variants."
+    },
+    "unauthorized_record_exposure": {
+      "event": "A non-error case-arm run whose complete returned list contains any reference outside the authorized corpus for the case actor, groups, as_of, and known_at.",
+      "cutoff": "complete returned list",
+      "denominator": "non-error applicable case-arm variants after scenario-mean then equal-weight scenario mean; scenarios with zero applicable variants are excluded",
+      "empty_ranking": "not an event",
+      "duplicates": "first occurrence only",
+      "absolute_gate_count": "Count of non-error case-arm-variant runs with at least one unauthorized reference. The absolute gate requires this count to be 0. An execution error is not an exposure. The published rate is the variant-then-scenario average of the event indicator over applicable variants."
+    }
+  },
+  "metrics": [
+    "set_success_at_1",
+    "set_success_at_5",
+    "best_sufficient_set_recall_at_1",
+    "best_sufficient_set_recall_at_5",
+    "mrr",
+    "ndcg",
+    "forbidden_reference_exposure_rate",
+    "empty_retrieval_rate",
+    "retrieval_error_rate",
+    "oos_false_load_rate",
+    "oos_correct_rejection_rate",
+    "stale_version_retrieval_rate",
+    "unauthorized_record_exposure",
+    "retrieval_latency_p50_ms",
+    "retrieval_latency_p95_ms",
+    "index_build_time_ms",
+    "incremental_update_time_ms",
+    "peak_process_rss_bytes"
+  ],
+  "absolute_gates": {
+    "unauthorized_record_exposure": 0,
+    "stale_version_retrieval_rate": 0,
+    "unit": "occurrence count of unsafe non-error case-arm-variant runs over the complete returned list. The gate fails if the count is greater than 0. Execution errors are counted in retrieval_error_rate, not as exposures. Rates are reported alongside the count and do not relax the count gate."
+  },
+  "selection_policy": {
+    "tune_on": "validation",
+    "open_test_after_thresholds_frozen": true,
+    "open_test_once": true,
+    "report_by_query_class": true,
+    "per_query_class_metrics_are_diagnostics": true,
+    "selection_unit": "one_global_candidate_arm",
+    "simplest_passing_global_arm_wins": true,
+    "complexity_order": [
+      "bm25",
+      "dense_candidate_a",
+      "dense_candidate_b",
+      "bm25_dense_rank_fusion",
+      "hybrid_local_reranker"
+    ],
+    "winner_rule": "One global candidate arm is selected after Gate 2 validation. Aggregate validation metrics across independent scenarios using the v3 weighting rules. The lowest-complexity global arm that meets every frozen validation threshold and safety gate wins; intra-tier ties use lexicographic frozen candidate ID; controls never win. Per-query-class metrics are mandatory diagnostics, not separate winners. Class-specific routing is a future challenger requiring a separately evaluated query classifier.",
+    "gate_1_defines_metrics_only": "Gate 1 freezes these metric definitions and does not select a retriever, bind a retrieval configuration, or open the test split.",
+    "gate_2_execution_contract": "Gate 2 must create a separately versioned retrieval-execution contract containing complete implementation revisions, BM25 analysis/scoring/ties, dense templates/pooling/similarity, fusion formula/constants, reranker pipeline, seeds, limits, output tie-breaking, and closed passing thresholds. That configuration is frozen from validation results before sealed test opening. Its verified digest must be bound into every Gate 2 execution trace or result. Test opening without that verified artifact is prohibited. This Gate 1 contract does not design those pipelines or accept a placeholder digest.",
+    "undefined_required_metric": "If a required metric has no applicable scenario after errors, that metric is undefined and Gate 2 evaluation cannot pass or select a winner.",
+    "controls_never_selected_as_winners": true,
+    "oracle_latency_excluded_from_competitive_comparison": true
+  },
+  "worked_examples": {
+    "alternative_sets_different_ranks": {
+      "sufficient_sets": [["A:v1", "B:v1"], ["C:v1"]],
+      "returned": ["X:v1", "C:v1", "A:v1", "B:v1"],
+      "S_star": ["C:v1"],
+      "set_success_at_1": 0,
+      "recall_at_1": 0,
+      "set_success_at_5": 1,
+      "recall_at_5": 1,
+      "mrr": 0.5,
+      "ndcg": 0.6309297535714575,
+      "reason": "Singleton {C:v1} completes at rank 2. The pair completes later at rank 4. Earliest completion wins. nDCG=1/log2(3)."
+    },
+    "simultaneous_completion": {
+      "sufficient_sets": [["A:v1", "B:v1"], ["C:v1", "D:v1", "E:v1"], ["B:v1", "F:v1"]],
+      "returned": ["A:v1", "B:v1", "C:v1", "D:v1", "E:v1", "F:v1"],
+      "complete_at_rank_2": [["A:v1", "B:v1"]],
+      "S_star": ["A:v1", "B:v1"],
+      "reason": "Only {A:v1,B:v1} completes at the earliest rank 2. The three-element set completes later. If two equal-size sets completed at the same rank, lexicographically sorted references would break the remaining tie."
+    },
+    "simultaneous_equal_size_lexicographic": {
+      "sufficient_sets": [["B:v1", "C:v1"], ["A:v1", "C:v1"]],
+      "returned": ["A:v1", "B:v1", "C:v1"],
+      "S_star": ["A:v1", "C:v1"],
+      "set_success_at_1": 0,
+      "recall_at_1": 0.5,
+      "set_success_at_5": 1,
+      "recall_at_5": 1,
+      "mrr": 0.3333333333333333,
+      "ndcg": 0.9197207891481876,
+      "reason": "Both pairs complete at rank 3 and have size 2. Sorted tuples (A:v1,C:v1) < (B:v1,C:v1), so S* is [A:v1, C:v1]. nDCG=1.5/(1+1/log2(3))."
+    },
+    "no_set_completes": {
+      "sufficient_sets": [["A:v1", "B:v1"], ["C:v1", "D:v1"]],
+      "returned": ["A:v1", "C:v1", "X:v1"],
+      "fractions": {"A:v1,B:v1": 0.5, "C:v1,D:v1": 0.5},
+      "S_star": ["A:v1", "B:v1"],
+      "set_success_at_1": 0,
+      "set_success_at_5": 0,
+      "recall_at_1": 0.5,
+      "recall_at_5": 0.5,
+      "mrr": 0,
+      "ndcg": 0.6131471927654584,
+      "reason": "No set completes. Fractions tie at 0.5 and sizes tie at 2. Lexicographic sorted tuples: (A:v1,B:v1) < (C:v1,D:v1). nDCG=1/(1+1/log2(3))."
+    },
+    "empty_ranking": {
+      "sufficient_sets": [["A:v1", "B:v1"], ["C:v1"]],
+      "returned": [],
+      "S_star": ["C:v1"],
+      "ndcg": 0,
+      "set_success_at_1": 0,
+      "set_success_at_5": 0,
+      "mrr": 0,
+      "empty_retrieval_event": 1,
+      "reason": "No set completes; all fractions are 0; smaller set wins. DCG of an empty ranking is 0, so nDCG is 0."
+    },
+    "oos_not_applicable": {
+      "sufficient_sets": [],
+      "query_class": "unknown_oos",
+      "returned": ["A:v1"],
+      "ndcg": "not_applicable",
+      "set_success_at_1": "not_applicable",
+      "mrr": "not_applicable",
+      "oos_false_load_event": 1,
+      "oos_correct_rejection_event": 0,
+      "reason": "Zero sufficient sets, including OOS, are excluded from set-success, recall, MRR, and nDCG and are not averaged as 0."
+    },
+    "duplicate_returned_references": {
+      "returned_raw": ["A:v1", "A:v1", "B:v1"],
+      "returned_unique": ["A:v1", "B:v1"],
+      "sufficient_sets": [["A:v1", "B:v1"]],
+      "set_success_at_1": 0,
+      "recall_at_1": 0.5,
+      "set_success_at_5": 1,
+      "recall_at_5": 1,
+      "mrr": 0.5,
+      "ndcg": 1,
+      "reason": "Deduplicate retaining first occurrence before any metric. Duplicate A:v1 does not occupy two ranks."
+    },
+    "variant_weighting": {
+      "scenario_id": "s1",
+      "variants": [
+        {"variant_id": "a", "set_success_at_5": 1.0},
+        {"variant_id": "b", "set_success_at_5": 0.0}
+      ],
+      "second_scenario": {"scenario_id": "s2", "set_success_at_5": 1.0},
+      "scenario_value": 0.5,
+      "split_mean": 0.75,
+      "reason": "Average variants inside the scenario first. S1 contributes 0.5 once and S2 contributes 1 once; split mean=(0.5+1)/2=0.75, not row-weighted 2/3."
+    },
+    "mixed_error_scenario": {
+      "metric": "set_success_at_5",
+      "scenarios": {
+        "s1": [
+          {"variant_id": "a", "error": false, "value": 1.0},
+          {"variant_id": "b", "error": true}
+        ],
+        "s2": [
+          {"variant_id": "a", "error": false, "value": 0.0}
+        ]
+      },
+      "s1_applicable_mean": 1.0,
+      "s2_applicable_mean": 0.0,
+      "all_variants_error_scenario_count": 0,
+      "split_mean": 0.5,
+      "retrieval_error_rate": 0.25,
+      "reason": "S1 averages only the non-error variant (1.0). S2 is 0. Error rate: S1=0.5, S2=0, split=(0.5+0)/2=0.25. The error variant is not treated as success 0 inside set_success."
+    },
+    "all_error_scenario": {
+      "metric": "set_success_at_5",
+      "scenarios": {
+        "s1": [
+          {"variant_id": "a", "error": true},
+          {"variant_id": "b", "error": true}
+        ],
+        "s2": [
+          {"variant_id": "a", "error": false, "value": 1.0}
+        ]
+      },
+      "s1_applicable_mean": null,
+      "s2_applicable_mean": 1.0,
+      "all_variants_error_scenario_count": 1,
+      "split_mean": 1.0,
+      "retrieval_error_rate": 0.5,
+      "reason": "S1 has zero applicable variants, is excluded from set_success, and increments all_variants_error_scenario_count. Split set_success is 1.0 from S2 only. Error rate: S1=1, S2=0, split=0.5. Errors are not correct empty/OOS rejection."
+    },
+    "oos_error_is_not_correct_rejection": {
+      "metric": "oos_correct_rejection_rate",
+      "scenarios": {
+        "oos1": [
+          {"variant_id": "a", "query_class": "unknown_oos", "error": true}
+        ],
+        "oos2": [
+          {"variant_id": "a", "query_class": "unknown_oos", "error": false, "returned": []}
+        ]
+      },
+      "oos1_applicable_mean": null,
+      "oos2_applicable_mean": 1.0,
+      "all_variants_error_scenario_count": 1,
+      "split_mean": 1.0,
+      "retrieval_error_rate": 0.5,
+      "reason": "The all-error OOS scenario is excluded from oos_correct_rejection_rate and counted only in retrieval_error_rate. It is not a correct empty/OOS rejection."
+    },
+    "safety_error_is_not_exposure": {
+      "unauthorized_gate": {
+        "variants": [
+          {"variant_id": "a", "error": true, "unsafe": false},
+          {"variant_id": "b", "error": false, "unsafe": false}
+        ],
+        "absolute_count": 0,
+        "gate": "pass",
+        "reason": "The execution error is an error, not an unauthorized exposure."
+      },
+      "unsafe_variant_fails_gate": {
+        "variants": [
+          {"variant_id": "a", "error": false, "unsafe": true},
+          {"variant_id": "b", "error": false, "unsafe": false}
+        ],
+        "absolute_count": 1,
+        "gate": "fail",
+        "reason": "Any unsafe non-error returned list fails count=0, even if the scenario mean is 0.5."
+      }
+    }
+  }
+}

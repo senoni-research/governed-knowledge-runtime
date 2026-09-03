@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/corpus-freeze.schema.json",
+  "title": "GKR M1 corpus freeze manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "corpus_id",
+    "status",
+    "source_commit",
+    "corpus_contract",
+    "stable_record_count",
+    "authority_event_count",
+    "authority_jsonl_sha256",
+    "corpus_manifest_sha256",
+    "content_digest_sha256",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "gkr-m1-corpus-freeze-v1"
+    },
+    "corpus_id": {
+      "const": "gkr-m1-authority-corpus"
+    },
+    "status": {
+      "const": "frozen"
+    },
+    "source_commit": {
+      "const": "d308888",
+      "description": "Public commit that introduced the reviewed corpus bytes. This freeze manifest does not claim to contain its own future commit."
+    },
+    "corpus_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manifest_schema_version",
+        "authority_format_version",
+        "authority_schema"
+      ],
+      "properties": {
+        "manifest_schema_version": {
+          "const": "gkr-m1-corpus-manifest-v1"
+        },
+        "authority_format_version": {
+          "const": "gkr-m1-authority-jsonl-v1"
+        },
+        "authority_schema": {
+          "const": "gkr.schemas.KnowledgeRecord"
+        }
+      }
+    },
+    "stable_record_count": {
+      "const": 47
+    },
+    "authority_event_count": {
+      "const": 63
+    },
+    "authority_jsonl_sha256": {
+      "const": "3325db848fe13a2f0f3e7b2e0894e92d9b27e99c42a16b3c90f03b40a39c81a2"
+    },
+    "corpus_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "content_digest_sha256": {
+      "const": "1a30668d55910c544fa00aa6927ad7dc3064f6585a6186bc543fc590dec64300"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "corpus_author",
+        "content_review",
+        "code_review",
+        "review_class",
+        "owner_approval",
+        "note"
+      ],
+      "properties": {
+        "corpus_author": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "identity"],
+          "properties": {
+            "kind": {"const": "model_family"},
+            "identity": {"const": "grok"}
+          }
+        },
+        "content_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "identity", "verdict"],
+          "properties": {
+            "kind": {"const": "independent_model_family"},
+            "identity": {"const": "chatgpt"},
+            "verdict": {"const": "CONTENT_APPROVED"}
+          }
+        },
+        "code_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "identity", "verdict"],
+          "properties": {
+            "kind": {"const": "independent_model_family"},
+            "identity": {"const": "cursor"},
+            "verdict": {"const": "CODE_APPROVED"}
+          }
+        },
+        "review_class": {
+          "const": "ai_review_of_fictional_benchmark_content"
+        },
+        "owner_approval": {
+          "const": false
+        },
+        "note": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

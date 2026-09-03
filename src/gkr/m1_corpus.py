@@ -142,7 +142,7 @@ def build_manifest(
     return {
         "schema_version": SCHEMA_VERSION,
         "corpus_id": CORPUS_ID,
-        "status": "reviewed",
+        "status": "frozen",
         "format_version": FORMAT_VERSION,
         "as_of_anchor": as_of_anchor.isoformat(),
         "stable_record_count": len({record.record_id for record in records}),

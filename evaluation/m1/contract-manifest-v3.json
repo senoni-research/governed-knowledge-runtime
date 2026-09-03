@@ -1,0 +1,39 @@
+{
+  "contract_version": "gkr-m1-contract-v3",
+  "status": "frozen",
+  "supersedes": [
+    "gkr-m1-contract-v1",
+    "gkr-m1-contract-v2"
+  ],
+  "prior_contracts": {
+    "v1": "frozen-unchanged",
+    "v2": "frozen-unchanged"
+  },
+  "files": {
+    "benchmark-case-v3.schema.json": "8621b10fe11781ff2da3b734a70aafafe848048193ca2d2c78c915ab60710244",
+    "test-public-case-v3.schema.json": "7fba974f543d5432066562e17bc7e7f1ee3f135b254947917c925ac8a6a66eff",
+    "programme-v3.json": "951a8d1970da81a4e5fc14741a8cb282f548acb742a11cac3002a1ef336a50a1",
+    "metric-contract-v3.json": "3b155dfa22941281955e026e8afb73bc1602d3c2e6b914482c413fd3f0f1160e",
+    "suite-manifest-v3.schema.json": "6fd19aa8b21a2b15a1497c76a94ed64f0800892ab1aee1ea9de9ae83af09461a",
+    "encryption-profile-v1.json": "af01ca1f0ea1537b963ad92467e69cb273146fbdcb329af056fc8bbaadbb8344",
+    "hash-profile-v1.json": "207327b246c971cd609eacdacd7c81dac9e0b0645281606ea93595334a727887",
+    "model-family-registry-v1.json": "8fbbd53f7a52e2d3f7b0543227ed132afc5b1fde3f667aaed81121a63f470c8b",
+    "corpus-freeze-manifest.json": "961e91927798ddfecf55133591481ddf6f5d181729296c21937ff036b2563a1a",
+    "corpus-freeze.schema.json": "1be7950120f4802cc802288aead416d28894e9c2768b44a6332ab391baf9f751"
+  },
+  "cases_status": "pending-authoring-under-v3",
+  "review_provenance": {
+    "contract_review": {
+      "reviewer": "independent ChatGPT",
+      "verdict": "CONTRACT_APPROVED",
+      "report": "021"
+    },
+    "code_review": {
+      "reviewer": "independent Cursor",
+      "verdict": "CODE_APPROVED",
+      "report": "022"
+    },
+    "note": "This is AI review of synthetic research tooling, not owner, legal, production or organizational approval."
+  },
+  "note": "v1 and v2 remain frozen and unchanged. The authority corpus is frozen. This v3 case/metric/suite contract is now frozen. Gate 1 remains not_run because no 360-case scoring suite exists. Conformance fixture review remains pending in case provenance. Conformance prompt provenance is intentionally incomplete. No retriever is selected and the Gate 2 execution contract is deferred."
+}

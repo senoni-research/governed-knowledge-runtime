@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shutil
@@ -57,8 +58,7 @@ def test_committed_corpus_validates_and_ingests() -> None:
     assert report["authority_event_count"] >= 60
     assert report["ledger_chain_valid"] is True
     assert report["manifest_valid"] is True
-    assert report["status"] == "reviewed"
-    assert report["status"] != "frozen"
+    assert report["status"] == "frozen"
     assert report["relation_count"] >= 12
     assert report["rule_count"] >= 8
     assert report["coverage"]["versioned_records"] >= 8
@@ -83,12 +83,26 @@ def test_committed_corpus_validates_and_ingests() -> None:
     }
 
 
-def test_reviewed_manifest_is_not_frozen_and_does_not_pass_gate1() -> None:
+def test_frozen_manifest_does_not_pass_gate1() -> None:
     manifest = json.loads((DEFAULT_CORPUS_DIR / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+    freeze = json.loads(
+        Path("evaluation/m1/corpus-freeze-manifest.json").read_text(encoding="utf-8")
+    )
     programme = json.loads(Path("evaluation/m1/programme.json").read_text(encoding="utf-8"))
 
-    assert manifest["status"] == "reviewed"
-    assert manifest["status"] != "frozen"
+    assert manifest["status"] == "frozen"
+    assert freeze["status"] == "frozen"
+    assert freeze["source_commit"] == "d308888"
+    assert freeze["authority_jsonl_sha256"] == (
+        "3325db848fe13a2f0f3e7b2e0894e92d9b27e99c42a16b3c90f03b40a39c81a2"
+    )
+    assert freeze["content_digest_sha256"] == (
+        "1a30668d55910c544fa00aa6927ad7dc3064f6585a6186bc543fc590dec64300"
+    )
+    assert freeze["stable_record_count"] == 47
+    assert freeze["authority_event_count"] == 63
+    freeze_bytes = Path("evaluation/m1/corpus/corpus-manifest.json").read_bytes()
+    assert hashlib.sha256(freeze_bytes).hexdigest() == freeze["corpus_manifest_sha256"]
     assert manifest["generation"]["producer"] == "grok"
     assert manifest["generation"]["independent_review"] == "completed"
     assert programme["current_pass_status"]["corpus"] == "not_run"
@@ -357,8 +371,7 @@ def test_write_corpus_replaces_complete_files(tmp_path: Path) -> None:
     assert leftovers == []
     assert (tmp_path / AUTHORITY_FILENAME).is_file()
     assert (tmp_path / MANIFEST_FILENAME).is_file()
-    assert manifest["status"] == "reviewed"
-    assert manifest["status"] != "frozen"
+    assert manifest["status"] == "frozen"
     assert manifest["generation"]["independent_review"] == "completed"
     report = validate_m1_corpus(tmp_path)
     assert report["authority_event_count"] == manifest["authority_event_count"]

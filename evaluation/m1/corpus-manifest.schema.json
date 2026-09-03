@@ -28,7 +28,7 @@
     },
     "status": {
       "enum": ["candidate-awaiting-independent-review", "reviewed", "frozen"],
-      "description": "`reviewed` means independent ChatGPT synthetic-content review completed. `reviewed` does not mean owner approval, organizational authority, Gate 1 passage, or `frozen`."
+      "description": "`reviewed` means independent ChatGPT synthetic-content review completed. `frozen` means the reviewed bytes are bound by evaluation/m1/corpus-freeze-manifest.json. Neither value means owner approval, organizational authority, or Gate 1 passage."
     },
     "format_version": {
       "const": "gkr-m1-authority-jsonl-v1"

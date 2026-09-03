@@ -1,0 +1,31 @@
+{
+  "schema_version": "gkr-m1-model-family-registry-v1",
+  "registry_id": "gkr-m1-model-family-registry-v1",
+  "note": "This registry validates declared provenance against a controlled list of canonical family IDs and allowed exact model-ID prefixes or patterns. Aliases such as grok, grok-4.6, chatgpt, or arbitrary novel slugs are not accepted as family IDs. Resolution fail-closes on an unknown family or family/model mapping. This cannot prove which external model actually ran.",
+  "families": [
+    {
+      "provider": "xai",
+      "family_id": "xai-grok",
+      "allowed_model_id_prefixes": ["grok-"],
+      "allowed_model_id_patterns": ["^grok-[0-9A-Za-z._-]+$"]
+    },
+    {
+      "provider": "openai",
+      "family_id": "openai-gpt",
+      "allowed_model_id_prefixes": ["gpt-"],
+      "allowed_model_id_patterns": ["^gpt-[0-9A-Za-z._-]+$"]
+    },
+    {
+      "provider": "anthropic",
+      "family_id": "anthropic-claude",
+      "allowed_model_id_prefixes": ["claude-"],
+      "allowed_model_id_patterns": ["^claude-[0-9A-Za-z._-]+$"]
+    },
+    {
+      "provider": "google",
+      "family_id": "google-gemini",
+      "allowed_model_id_prefixes": ["gemini-"],
+      "allowed_model_id_patterns": ["^gemini-[0-9A-Za-z._-]+$"]
+    }
+  ]
+}

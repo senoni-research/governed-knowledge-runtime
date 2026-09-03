@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/test-public-case-v3.schema.json",
+  "title": "GKR M1 public test case v3",
+  "description": "Redacted public form of a test case. Question text, the oracle object, claims, citations, notes, authorship, review, salts, encrypted paths, and keys are excluded. Full test cases plus per-case salts live only in a plaintext_staging_bundle at a caller-supplied path outside the repository. That staging bundle is not sealed. Sealing a scoring suite requires a separate age-x25519-v1 externally encrypted artifact whose hash is bound by the suite manifest. Hash preimages follow profile ID gkr-m1-hash-profile-v1.\n\nquestion_commitment_sha256 is SHA-256(salt_bytes || utf8(normalized_question)), where salt_bytes is a 32-byte secret that lives only in the plaintext staging bundle for that case. Concatenation is the raw salt bytes followed by the UTF-8 encoding of the gkr-m1-hash-profile-v1 normalized question: Unicode NFKC, every Unicode whitespace run to U+0020, trim, Unicode case-fold. The salt never appears in this public form.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "hash_profile_id",
+    "case_id",
+    "scenario_id",
+    "variant_id",
+    "split",
+    "query_class",
+    "scope",
+    "question_commitment_sha256"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-test-public-case-v3"},
+    "hash_profile_id": {"const": "gkr-m1-hash-profile-v1"},
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "scenario_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "variant_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "split": {"const": "test"},
+    "query_class": {
+      "enum": [
+        "exact_factual",
+        "semantic_paraphrase",
+        "numeric_conditional",
+        "temporal",
+        "authorization",
+        "unknown_oos",
+        "multi_record",
+        "adversarial_conflicting"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actor", "groups", "as_of", "known_at"],
+      "properties": {
+        "actor": {"type": ["string", "null"]},
+        "groups": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "as_of": {
+          "type": "string",
+          "format": "date"
+        },
+        "known_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "question_commitment_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 under gkr-m1-hash-profile-v1 of salt_bytes || UTF-8(normalized_question)."
+    }
+  }
+}

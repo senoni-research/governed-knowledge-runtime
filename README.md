@@ -152,14 +152,20 @@ gkr context "question" --actor alice --group employees --json
 
 `gkr eval` runs the frozen M0 suite covering valid-time selection, known-at reconstruction,
 and restricted-record non-exposure. The versioned M1 case and metric contract remains frozen
-under `evaluation/m1/`. A Grok-authored and Grok-remediated fictional synthetic
-authority corpus now exists at `evaluation/m1/corpus/`. Independent ChatGPT content
-review concluded `CONTENT_APPROVED`. Independent Cursor code review concluded
+under `evaluation/m1/` for v1 and v2. A Grok-authored and Grok-remediated fictional
+synthetic authority corpus now exists at `evaluation/m1/corpus/`. Independent ChatGPT
+content review concluded `CONTENT_APPROVED`. Independent Cursor code review concluded
 `CODE_APPROVED`. That is AI review of fictional benchmark content, not human or
-organizational approval. The frozen v2 owner-labelled requirement is unchanged and
-unmet. A later versioned contract is required before an AI-reviewed synthetic suite
-can be promoted. The 360 scenarios and oracles are unbuilt, and Gate 1 remains
-`not_run`. Corpus status `reviewed` is not `frozen`. Validate the corpus with:
+organizational approval. The corpus is frozen under the v3 freeze manifest. Frozen
+contract v3 governs case authoring for this fictional
+research corpus (`v3 contract frozen; corpus frozen; Gate 1 not_run`). Human or owner approval remains required for real company authority,
+production promotion, and answer-quality claims. The 360 scoring scenarios and oracles
+are unbuilt, and Gate 1 remains `not_run`. Deterministic oracle validation is not
+semantic proof. The conformance fixture is non-scoring and unreviewed in its case
+provenance; its prompt digest is intentionally null because the historical
+prompt preimage was not retained. Gate 1 defines metrics but selects no
+retriever. Plaintext test staging is not a sealed bundle; sealing requires an
+external encrypted artifact. Validate the corpus with:
 
 ```bash
 .venv/bin/python scripts/validate_m1_corpus.py

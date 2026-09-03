@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/suite-manifest-v3.schema.json",
+  "title": "GKR M1 v3 scoring suite freeze manifest",
+  "description": "Immutable freeze manifest for a successful Gate 1 scoring-suite construction. A conformance run must never emit this document. Draft authoring state lives in case files. Validation failures live in validation reports and produce no suite manifest. status is const frozen and gate_1_status is const passed: this means Gate 1 construction/validation passed, not that Gate 2 retrieval has run. The repository itself remains Gate 1 not_run until a 360-case scoring suite exists. This schema is bound to one frozen corpus (suite_id gkr-m1-scoring-suite-v1 and the three corpus digest constants). Frozen scoring suites require case_kind=scoring, 120/120/120 independent scenarios, 15-per-class-per-split counts, completed semantic review, role/session/canonical-model-family independence, deterministic oracle checks, evidence-applicability coverage, public and staging artifact checks, and encryption profile age-x25519-v1. Development and validation bind canonical full-case JSONL digests and are not encrypted. Test binds only the redacted public-test JSONL SHA-256, ordered salted-question-commitments SHA-256, public counts, and the age-x25519-v1 ciphertext digest. No public suite field may contain or be defined as a digest of full test questions, full oracles, salts, or plaintext staging bytes. Gate 1 defines metrics but selects no retriever and binds no retrieval-configuration digest. Gate 2 must introduce a separately versioned retrieval-execution contract after validation and before test opening. The generic sealed flag is not a valid field. The manifest never publishes an encrypted path, recipient key, salt, question, or oracle. This schema does not prove that external ciphertext decrypts to plaintext staging bytes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "suite_id",
+    "status",
+    "case_kind",
+    "case_schema_version",
+    "metric_contract_version",
+    "hash_profile_id",
+    "gate_1_status",
+    "semantic_review",
+    "deterministic_oracle_validation",
+    "corpus",
+    "splits",
+    "query_class_scenario_counts",
+    "evidence_applicability",
+    "encrypted_test_artifact",
+    "encryption_boundary",
+    "deduplication"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-suite-manifest-v3"},
+    "suite_id": {"const": "gkr-m1-scoring-suite-v1"},
+    "status": {"const": "frozen"},
+    "case_kind": {"const": "scoring"},
+    "case_schema_version": {"const": "gkr-m1-case-v3"},
+    "metric_contract_version": {"const": "gkr-m1-retrieval-metrics-v3"},
+    "hash_profile_id": {"const": "gkr-m1-hash-profile-v1"},
+    "gate_1_status": {
+      "const": "passed",
+      "description": "Immutable Gate 1 construction/validation success. This freeze schema does not model draft, not_run, or failed states. passed means the Gate 1 suite passed construction and validation, not that Gate 2 retrieval has run. The repository programme remains Gate 1 not_run until this document exists."
+    },
+    "semantic_review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all_completed", "all_semantically_reviewed"],
+      "properties": {
+        "all_completed": {"const": true},
+        "all_semantically_reviewed": {"const": true}
+      }
+    },
+    "deterministic_oracle_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed"],
+      "properties": {
+        "passed": {"const": true}
+      }
+    },
+    "corpus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stable_record_count",
+        "authority_event_count",
+        "authority_jsonl_sha256",
+        "content_digest_sha256",
+        "corpus_freeze_manifest_sha256"
+      ],
+      "properties": {
+        "stable_record_count": {"const": 47},
+        "authority_event_count": {"const": 63},
+        "authority_jsonl_sha256": {
+          "const": "3325db848fe13a2f0f3e7b2e0894e92d9b27e99c42a16b3c90f03b40a39c81a2"
+        },
+        "content_digest_sha256": {
+          "const": "1a30668d55910c544fa00aa6927ad7dc3064f6585a6186bc543fc590dec64300"
+        },
+        "corpus_freeze_manifest_sha256": {
+          "const": "961e91927798ddfecf55133591481ddf6f5d181729296c21937ff036b2563a1a"
+        }
+      }
+    },
+    "splits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["development", "validation", "test"],
+      "properties": {
+        "development": {"$ref": "#/$defs/plaintextSplit"},
+        "validation": {"$ref": "#/$defs/plaintextSplit"},
+        "test": {"$ref": "#/$defs/publicTestSplit"}
+      }
+    },
+    "query_class_scenario_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["development", "validation", "test"],
+      "description": "Independent scenario counts per query class in each split. Frozen scoring suites require 15 of each class in development, validation, and test.",
+      "properties": {
+        "development": {"$ref": "#/$defs/classCounts"},
+        "validation": {"$ref": "#/$defs/classCounts"},
+        "test": {"$ref": "#/$defs/classCounts"}
+      }
+    },
+    "evidence_applicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Derived independent-scenario counts that make required metrics defined. Every class records evidence_bearing and zero_set counts plus total_scenario_count=15. JSON Schema cannot express the cross-property sum; runtime validation requires the two derived counts to partition the 15 scenarios. unknown_oos is 0+15. authorization authorized-evidence-bearing + denied-zero-set must equal 15 with each at least 1. Every other non-OOS class must have at least one evidence-bearing scenario. If a required metric later has no applicable scenario after errors, that metric is undefined and Gate 2 evaluation cannot pass or select a winner.",
+      "required": ["development", "validation", "test"],
+      "properties": {
+        "development": {"$ref": "#/$defs/splitApplicability"},
+        "validation": {"$ref": "#/$defs/splitApplicability"},
+        "test": {"$ref": "#/$defs/splitApplicability"}
+      }
+    },
+    "encrypted_test_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "External age-x25519-v1 attestation. Rejects plaintext, cat, none, ZIP/password, archive-only, and unknown profiles. Exposes no path, recipient key, salt, question, oracle, or plaintext digest.",
+      "required": [
+        "encryption_profile_id",
+        "tool_family",
+        "tool_version",
+        "recipient_key_fingerprint_sha256",
+        "encrypted_artifact_sha256"
+      ],
+      "properties": {
+        "encryption_profile_id": {"const": "age-x25519-v1"},
+        "tool_family": {"const": "age"},
+        "tool_version": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "enum": [
+              "plaintext",
+              "cat",
+              "none",
+              "zip",
+              "password",
+              "password-zip",
+              "password_zip",
+              "archive",
+              "archive-only",
+              "archive_only"
+            ]
+          }
+        },
+        "recipient_key_fingerprint_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the canonical age recipient string, 64 lowercase hex."
+        },
+        "encrypted_artifact_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of exact ciphertext bytes."
+        }
+      }
+    },
+    "encryption_boundary": {
+      "const": "The encrypted artifact is produced by an external age-x25519-v1 authenticated-encryption tool. This runtime verifies the artifact exists outside the repository, matches encryption profile age-x25519-v1, and matches the declared SHA-256 of exact ciphertext bytes. It does not implement or decrypt age and does not prove the ciphertext decrypts to the plaintext staging bytes."
+    },
+    "deduplication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_cross_split_duplicates",
+        "semantic_cross_split_candidates_reviewed",
+        "report_sha256"
+      ],
+      "properties": {
+        "exact_cross_split_duplicates": {"const": 0},
+        "semantic_cross_split_candidates_reviewed": {"const": true},
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the dedup report as a gkr-m1-hash-profile-v1 canonical JSON object. The freeze API accepts this digest as an external attestation; it does not load or rehash a dedup-report file."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "plaintextSplit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_scenario_count",
+        "case_count",
+        "cases_sha256",
+        "questions_sha256",
+        "externally_encrypted_artifact_bound"
+      ],
+      "properties": {
+        "independent_scenario_count": {"const": 120},
+        "case_count": {"type": "integer", "minimum": 120},
+        "cases_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of gkr-m1-hash-profile-v1 canonical JSONL for the development or validation split, ordered by case_id. These splits may bind full-case plaintext digests."
+        },
+        "questions_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the gkr-m1-hash-profile-v1 compact JSON array of question_sha256 values ordered by case_id."
+        },
+        "externally_encrypted_artifact_bound": {"const": false}
+      }
+    },
+    "publicTestSplit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "independent_scenario_count",
+        "case_count",
+        "public_case_count",
+        "public_cases_sha256",
+        "question_commitments_sha256",
+        "externally_encrypted_artifact_bound"
+      ],
+      "properties": {
+        "independent_scenario_count": {"const": 120},
+        "case_count": {"type": "integer", "minimum": 120},
+        "public_case_count": {"type": "integer", "minimum": 120},
+        "public_cases_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of gkr-m1-hash-profile-v1 canonical JSONL of the redacted public-test cases, ordered by case_id. This is not a digest of full plaintext test cases, oracles, salts, or staging bytes."
+        },
+        "question_commitments_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the gkr-m1-hash-profile-v1 compact JSON array of salted question_commitment_sha256 values ordered by case_id."
+        },
+        "externally_encrypted_artifact_bound": {"const": true}
+      }
+    },
+    "classCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_factual",
+        "semantic_paraphrase",
+        "numeric_conditional",
+        "temporal",
+        "authorization",
+        "unknown_oos",
+        "multi_record",
+        "adversarial_conflicting"
+      ],
+      "properties": {
+        "exact_factual": {"const": 15},
+        "semantic_paraphrase": {"const": 15},
+        "numeric_conditional": {"const": 15},
+        "temporal": {"const": 15},
+        "authorization": {"const": 15},
+        "unknown_oos": {"const": 15},
+        "multi_record": {"const": 15},
+        "adversarial_conflicting": {"const": 15}
+      }
+    },
+    "splitApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "exact_factual",
+        "semantic_paraphrase",
+        "numeric_conditional",
+        "temporal",
+        "authorization",
+        "unknown_oos",
+        "multi_record",
+        "adversarial_conflicting"
+      ],
+      "properties": {
+        "exact_factual": {"$ref": "#/$defs/evidenceBearingClass"},
+        "semantic_paraphrase": {"$ref": "#/$defs/evidenceBearingClass"},
+        "numeric_conditional": {"$ref": "#/$defs/evidenceBearingClass"},
+        "temporal": {"$ref": "#/$defs/evidenceBearingClass"},
+        "authorization": {"$ref": "#/$defs/authorizationApplicability"},
+        "unknown_oos": {"$ref": "#/$defs/oosApplicability"},
+        "multi_record": {"$ref": "#/$defs/evidenceBearingClass"},
+        "adversarial_conflicting": {"$ref": "#/$defs/evidenceBearingClass"}
+      }
+    },
+    "evidenceBearingClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_bearing_scenario_count",
+        "zero_set_scenario_count",
+        "total_scenario_count"
+      ],
+      "properties": {
+        "evidence_bearing_scenario_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 15
+        },
+        "zero_set_scenario_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 14
+        },
+        "total_scenario_count": {"const": 15}
+      }
+    },
+    "authorizationApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_bearing_authorized_scenario_count",
+        "zero_set_denied_scenario_count",
+        "total_scenario_count"
+      ],
+      "properties": {
+        "evidence_bearing_authorized_scenario_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 14
+        },
+        "zero_set_denied_scenario_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 14
+        },
+        "total_scenario_count": {"const": 15}
+      }
+    },
+    "oosApplicability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_bearing_scenario_count",
+        "zero_set_scenario_count",
+        "total_scenario_count"
+      ],
+      "properties": {
+        "evidence_bearing_scenario_count": {"const": 0},
+        "zero_set_scenario_count": {"const": 15},
+        "total_scenario_count": {"const": 15}
+      }
+    }
+  }
+}
