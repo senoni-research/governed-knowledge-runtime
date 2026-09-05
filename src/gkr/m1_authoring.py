@@ -3,7 +3,10 @@
 Question, oracle, and semantic-review packets are distinct inputs. Assembly
 copies question fields from the question draft and oracle fields from the
 oracle draft after a canonical drift check; it stamps ``oracle_review`` only
-from the review artifact. No role can silently overwrite another.
+from a review artifact that binds the canonical full oracle-draft row.
+Content-addressed approvals from multiple review batches may compose; stale
+bindings do not approve changed content, and competing current-content reviews
+fail closed. No role can silently overwrite another.
 
 Lexical candidate generation is stdlib-only. A later semantic dedup report is
 an attestation: this module validates schema, question-set digest, and
@@ -46,11 +49,12 @@ from gkr.m1_oracle_validation import validate_m1_oracles
 AUTHORING_SUPPORT_DIR = Path("evaluation/m1/authoring-support")
 QUESTION_DRAFT_SCHEMA = AUTHORING_SUPPORT_DIR / "question-draft-v1.schema.json"
 ORACLE_DRAFT_SCHEMA = AUTHORING_SUPPORT_DIR / "oracle-draft-v1.schema.json"
-REVIEW_ARTIFACT_SCHEMA = AUTHORING_SUPPORT_DIR / "semantic-review-artifact-v1.schema.json"
+REVIEW_ARTIFACT_SCHEMA = AUTHORING_SUPPORT_DIR / "semantic-review-artifact-v2.schema.json"
 DEDUP_REPORT_SCHEMA = AUTHORING_SUPPORT_DIR / "semantic-dedup-report-v1.schema.json"
 QUESTION_DRAFT_VERSION = "gkr-m1-question-draft-v1"
 ORACLE_DRAFT_VERSION = "gkr-m1-oracle-draft-v1"
-REVIEW_ARTIFACT_VERSION = "gkr-m1-semantic-review-artifact-v1"
+REVIEW_ARTIFACT_VERSION = "gkr-m1-semantic-review-artifact-v2"
+REVIEW_BINDING_MANIFEST_VERSION = "gkr-m1-review-binding-manifest-v1"
 DEDUP_REPORT_VERSION = "gkr-m1-semantic-dedup-report-v1"
 CANDIDATE_REPORT_VERSION = "gkr-m1-dedup-candidate-report-v1"
 CASE_VERSION = "gkr-m1-case-v3"
@@ -60,8 +64,8 @@ CHAR_NGRAM = 3
 NEAREST_PER_FOREIGN_SPLIT = 1
 CANDIDATE_SCORE_FLOOR = 0.25
 SEMANTIC_REVIEW_SCOPE = (
-    "All questions, scopes, evidence sets, claims, citations, publication "
-    "decisions and dispositions were semantically reviewed."
+    "Every listed case's question, scope, evidence sets, claims, citations, "
+    "publication decision and disposition were semantically reviewed."
 )
 DEDUP_ATTESTATION_BOUNDARY = (
     "This artifact attests that a reviewer recorded these dispositions. "
@@ -110,6 +114,94 @@ def question_set_digest(cases: Sequence[Mapping[str, Any]]) -> str:
     return canonical_json_digest(ordered)
 
 
+def oracle_draft_digest(case: Mapping[str, Any]) -> str:
+    """SHA-256 of one canonical full oracle-draft row."""
+
+    return canonical_json_digest(case)
+
+
+def oracle_draft_case_set_digest(cases: Sequence[Mapping[str, Any]]) -> str:
+    """SHA-256 of sorted case IDs and their canonical oracle-draft digests."""
+
+    entries = [
+        {
+            "case_id": str(case["case_id"]),
+            "oracle_draft_sha256": oracle_draft_digest(case),
+        }
+        for case in cases
+    ]
+    ordered = sorted(
+        entries,
+        key=lambda item: (item["case_id"], item["oracle_draft_sha256"]),
+    )
+    return canonical_json_digest(ordered)
+
+
+def review_result_case_set_digest(results: Sequence[Mapping[str, Any]]) -> str:
+    """SHA-256 of sorted v2 review-result case/content bindings."""
+
+    entries = [
+        {
+            "case_id": str(result["case_id"]),
+            "oracle_draft_sha256": str(result["reviewed_oracle_draft_sha256"]),
+        }
+        for result in results
+    ]
+    ordered = sorted(
+        entries,
+        key=lambda item: (item["case_id"], item["oracle_draft_sha256"]),
+    )
+    return canonical_json_digest(ordered)
+
+
+def build_review_binding_manifest(
+    oracle_drafts_path: str | Path,
+    *,
+    split: str,
+    case_ids: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    """Build the content bindings a reviewer copies into one v2 batch."""
+
+    oracles = _load_schema_jsonl(
+        oracle_drafts_path,
+        ORACLE_DRAFT_SCHEMA,
+        ORACLE_DRAFT_VERSION,
+    )
+    split_rows = [row for row in oracles if str(row["split"]) == split]
+    by_case_id = _unique_by_case_id(split_rows, oracle_drafts_path, "oracle draft")
+    if case_ids is None:
+        selected_ids = sorted(by_case_id)
+    else:
+        requested = [str(case_id) for case_id in case_ids]
+        if len(requested) != len(set(requested)):
+            raise ValueError("review binding request contains duplicate case IDs")
+        unknown = sorted(set(requested) - set(by_case_id))
+        if unknown:
+            raise ValueError(
+                f"{oracle_drafts_path}: cases are absent from split {split}: "
+                + ", ".join(unknown)
+            )
+        selected_ids = sorted(requested)
+    if not selected_ids:
+        raise ValueError(f"{oracle_drafts_path}: no oracle drafts selected for split {split}")
+    selected = [by_case_id[case_id] for case_id in selected_ids]
+    return {
+        "schema_version": REVIEW_BINDING_MANIFEST_VERSION,
+        "hash_profile_id": HASH_PROFILE_ID,
+        "split": split,
+        "reviewed_oracle_draft_case_set_sha256": oracle_draft_case_set_digest(selected),
+        "case_count": len(selected_ids),
+        "case_ids": selected_ids,
+        "results": [
+            {
+                "case_id": case_id,
+                "reviewed_oracle_draft_sha256": oracle_draft_digest(by_case_id[case_id]),
+            }
+            for case_id in selected_ids
+        ],
+    }
+
+
 def hash_prompt_file(path: str | Path) -> str:
     text = Path(path).read_text(encoding="utf-8")
     return prompt_digest(text)
@@ -154,39 +246,102 @@ def assemble_reviewed_cases(
     registry = load_model_family_registry()
     for case_id in sorted(question_map):
         _assert_question_field_match(question_map[case_id], oracle_map[case_id], case_id)
-    assembled: list[dict[str, Any]] = []
-    review_digests: dict[str, str] = {}
+    matching_reviews: dict[
+        str,
+        list[
+            tuple[
+                dict[str, Any],
+                Path,
+                str,
+                Mapping[str, Any],
+            ]
+        ],
+    ] = {}
     for artifact, raw_path, raw_bytes in artifacts:
         split = str(artifact["split"])
         digest = review_artifact_digest(raw_bytes)
-        review_digests[split] = digest
-        split_oracles = [
-            oracle_map[case_id]
-            for case_id in sorted(oracle_map)
-            if oracle_map[case_id]["split"] == split
-        ]
-        _assert_review_covers_split(artifact, split_oracles, raw_path)
-        for case_id in artifact["case_ids"]:
-            question = question_map[str(case_id)]
-            oracle = oracle_map[str(case_id)]
-            result = _approved_result(artifact, str(case_id), raw_path)
-            assembled.append(
-                _stamp_scoring_case(
-                    question,
-                    oracle,
-                    artifact,
-                    result=result,
-                    review_sha256=digest,
-                    registry=registry,
-                )
+        _assert_review_artifact_integrity(artifact, raw_path)
+        artifact_ids = [str(case_id) for case_id in artifact["case_ids"]]
+        unknown = sorted(set(artifact_ids) - set(oracle_map))
+        if unknown:
+            raise ValueError(
+                f"{raw_path}: review batch contains unknown case IDs: "
+                + ", ".join(unknown)
+            )
+        wrong_split = sorted(
+            case_id
+            for case_id in artifact_ids
+            if str(oracle_map[case_id]["split"]) != split
+        )
+        if wrong_split:
+            raise ValueError(
+                f"{raw_path}: review batch split {split} does not match cases: "
+                + ", ".join(wrong_split)
+            )
+        for result in artifact["results"]:
+            case_id = str(result["case_id"])
+            if result.get("reviewed_oracle_draft_sha256") != oracle_draft_digest(
+                oracle_map[case_id]
+            ):
+                continue
+            matching_reviews.setdefault(case_id, []).append(
+                (artifact, raw_path, digest, result)
             )
 
-    extra_splits = sorted(
-        {str(case["split"]) for case in oracle_map.values()} - set(review_digests)
-    )
-    if extra_splits:
+    assembled: list[dict[str, Any]] = []
+    review_digests: dict[str, set[str]] = {}
+    scenario_review_digests: dict[str, str] = {}
+    missing_review: list[str] = []
+    for case_id in sorted(oracle_map):
+        matches = matching_reviews.get(case_id, [])
+        blockers = [
+            (source, result)
+            for _artifact, source, _digest, result in matches
+            if result.get("status") == "BLOCKED"
+        ]
+        if blockers:
+            sources = ", ".join(str(source) for source, _result in blockers)
+            raise ValueError(
+                f"{case_id}: current oracle content has a blocked semantic-review "
+                f"in {sources}"
+            )
+        approvals = [
+            match for match in matches if match[3].get("status") == "APPROVED"
+        ]
+        if not approvals:
+            missing_review.append(case_id)
+            continue
+        if len(approvals) != 1:
+            sources = ", ".join(str(match[1]) for match in approvals)
+            raise ValueError(
+                f"{case_id}: current oracle content has multiple matching semantic "
+                f"approvals: {sources}"
+            )
+        artifact, raw_path, digest, result = approvals[0]
+        question = question_map[case_id]
+        oracle = oracle_map[case_id]
+        scenario_id = str(oracle["scenario_id"])
+        prior_review_digest = scenario_review_digests.setdefault(scenario_id, digest)
+        if prior_review_digest != digest:
+            raise ValueError(
+                f"{raw_path}: all variants of scenario {scenario_id} must be "
+                "covered by the same review artifact"
+            )
+        review_digests.setdefault(str(oracle["split"]), set()).add(digest)
+        assembled.append(
+            _stamp_scoring_case(
+                question,
+                oracle,
+                artifact,
+                review_sha256=digest,
+                registry=registry,
+            )
+        )
+
+    if missing_review:
         raise ValueError(
-            "oracle drafts include splits with no review artifact: " + ", ".join(extra_splits)
+            "oracle drafts include cases with no matching approved semantic review: "
+            + ", ".join(missing_review)
         )
 
     assembled.sort(key=lambda case: str(case["case_id"]))
@@ -208,7 +363,9 @@ def assemble_reviewed_cases(
     return {
         "case_file": str(output),
         "cases": len(assembled),
-        "review_sha256_by_split": review_digests,
+        "review_sha256s_by_split": {
+            split: sorted(digests) for split, digests in sorted(review_digests.items())
+        },
         "relative_to_repository": _is_inside(output, root),
         "oracle_validation": oracle_report,
         "complete": require_complete,
@@ -422,6 +579,11 @@ def _load_review_artifact(path: str | Path) -> tuple[dict[str, Any], Path, bytes
         raise ValueError(f"{path}: review artifact must be one JSON object")
     if "review_sha256" in payload:
         raise ValueError(f"{path}: review artifact must not contain its own digest")
+    if payload.get("schema_version") != REVIEW_ARTIFACT_VERSION:
+        raise ValueError(
+            f"{path}: expected {REVIEW_ARTIFACT_VERSION}; legacy v1 review "
+            "artifacts do not bind oracle content"
+        )
     _validate_schema(payload, REVIEW_ARTIFACT_SCHEMA, source=path)
     if payload.get("semantic_review_scope") != SEMANTIC_REVIEW_SCOPE:
         raise ValueError(f"{path}: review artifact is missing the required semantic-review scope")
@@ -433,6 +595,18 @@ def _load_review_artifact(path: str | Path) -> tuple[dict[str, Any], Path, bytes
     result_ids = [str(item.get("case_id", "")) for item in payload.get("results", [])]
     if len(result_ids) != len(set(result_ids)):
         raise ValueError(f"{path}: review artifact has duplicate case results")
+    if result_ids != case_ids:
+        raise ValueError(
+            f"{path}: review results must contain exactly the sorted case_ids in order"
+        )
+    has_blocked_result = any(
+        item.get("status") == "BLOCKED" for item in payload.get("results", [])
+    )
+    expected_status = "BLOCKED" if has_blocked_result else "APPROVED"
+    if payload.get("overall_status") != expected_status:
+        raise ValueError(
+            f"{path}: overall_status must be {expected_status} for its result statuses"
+        )
     return payload, raw_path, raw_bytes
 
 
@@ -467,49 +641,19 @@ def _assert_question_field_match(
             )
 
 
-def _assert_review_covers_split(
+def _assert_review_artifact_integrity(
     artifact: Mapping[str, Any],
-    split_oracles: Sequence[Mapping[str, Any]],
     source: str | Path,
 ) -> None:
-    expected = [str(case["case_id"]) for case in split_oracles]
-    expected_sorted = sorted(expected)
-    artifact_ids = [str(item) for item in artifact["case_ids"]]
-    if artifact_ids != expected_sorted:
-        extra = sorted(set(artifact_ids) - set(expected_sorted))
-        missing = sorted(set(expected_sorted) - set(artifact_ids))
+    results = [
+        item for item in artifact["results"] if isinstance(item, Mapping)
+    ]
+    expected_digest = review_result_case_set_digest(results)
+    if artifact.get("reviewed_oracle_draft_case_set_sha256") != expected_digest:
         raise ValueError(
-            f"{source}: review case set does not match oracle drafts for "
-            f"split {artifact['split']}; missing={missing} extra={extra}"
+            f"{source}: reviewed oracle-draft case-set digest does not match its "
+            "result bindings"
         )
-    expected_digest = question_set_digest(split_oracles)
-    if artifact.get("reviewed_oracle_draft_question_set_sha256") != expected_digest:
-        raise ValueError(
-            f"{source}: reviewed oracle-draft question-set digest does not match "
-            "the supplied oracle drafts"
-        )
-    if artifact.get("overall_status") != "APPROVED":
-        raise ValueError(
-            f"{source}: review artifact overall_status is "
-            f"{artifact.get('overall_status')}; assembly requires APPROVED"
-        )
-    result_ids = [str(item["case_id"]) for item in artifact["results"]]
-    if sorted(result_ids) != expected_sorted or len(result_ids) != len(expected_sorted):
-        raise ValueError(f"{source}: review results must contain exactly one row per case")
-
-
-def _approved_result(
-    artifact: Mapping[str, Any],
-    case_id: str,
-    source: str | Path,
-) -> Mapping[str, Any]:
-    matches = [item for item in artifact["results"] if str(item["case_id"]) == case_id]
-    if len(matches) != 1:
-        raise ValueError(f"{source}: expected exactly one review result for {case_id}")
-    result = matches[0]
-    if result.get("status") != "APPROVED":
-        raise ValueError(f"{source}: blocked semantic-review result for {case_id}")
-    return result
 
 
 def _stamp_scoring_case(
@@ -517,11 +661,9 @@ def _stamp_scoring_case(
     oracle: Mapping[str, Any],
     artifact: Mapping[str, Any],
     *,
-    result: Mapping[str, Any],
     review_sha256: str,
     registry: Mapping[str, Any],
 ) -> dict[str, Any]:
-    del result
     question_role = dict(question["question_authorship"])
     oracle_role = dict(oracle["oracle_authorship"])
     sessions = (

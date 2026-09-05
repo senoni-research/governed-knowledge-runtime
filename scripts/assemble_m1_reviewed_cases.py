@@ -24,7 +24,10 @@ def main() -> int:
         required=True,
         action="append",
         dest="review_artifacts",
-        help="Exact raw JSON review artifact. Repeat once per split.",
+        help=(
+            "Exact raw v2 JSON review batch. Repeat as needed; one matching "
+            "approved content binding must cover every current case."
+        ),
     )
     parser.add_argument("--output", required=True)
     parser.add_argument("--corpus-dir", default=str(DEFAULT_CORPUS_DIR))

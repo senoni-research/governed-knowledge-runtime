@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.gkr/evaluation/m1/authoring-support/semantic-review-artifact-v2.schema.json",
+  "title": "GKR M1 semantic review artifact v2",
+  "description": "Content-bound semantic review batch for one split. Each result binds the canonical full oracle-draft row it reviewed. Assembly may compose per-case approvals from multiple batches; stale bindings do not approve changed content, and competing current-content results fail closed. Support schema only; not part of the frozen v3 contract. Must not contain its own digest.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "hash_profile_id",
+    "split",
+    "reviewed_oracle_draft_case_set_sha256",
+    "case_count",
+    "case_ids",
+    "overall_status",
+    "results",
+    "reviewer_kind",
+    "reviewer_identity",
+    "reviewer_session_id",
+    "reviewer_model_family_id",
+    "reviewer_model_id",
+    "reviewer_model_revision",
+    "reviewer_prompt_sha256",
+    "independent_from_retriever_tuning",
+    "semantic_review_scope"
+  ],
+  "properties": {
+    "schema_version": {"const": "gkr-m1-semantic-review-artifact-v2"},
+    "hash_profile_id": {"const": "gkr-m1-hash-profile-v1"},
+    "split": {
+      "enum": ["development", "validation", "test"]
+    },
+    "reviewed_oracle_draft_case_set_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "case_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "case_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9._-]+$"
+      },
+      "uniqueItems": true
+    },
+    "overall_status": {"enum": ["APPROVED", "BLOCKED"]},
+    "results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "reviewed_oracle_draft_sha256",
+          "status",
+          "finding_codes"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]+$"
+          },
+          "reviewed_oracle_draft_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "status": {"enum": ["APPROVED", "BLOCKED"]},
+          "finding_codes": {
+            "type": "array",
+            "items": {"type": "string"}
+          }
+        }
+      }
+    },
+    "reviewer_kind": {"enum": ["human", "model"]},
+    "reviewer_identity": {"type": "string", "minLength": 1},
+    "reviewer_session_id": {"type": "string", "minLength": 1},
+    "reviewer_model_family_id": {
+      "type": ["string", "null"],
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "reviewer_model_id": {"type": ["string", "null"], "minLength": 1},
+    "reviewer_model_revision": {"type": ["string", "null"]},
+    "reviewer_prompt_sha256": {
+      "type": ["string", "null"],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "independent_from_retriever_tuning": {"const": true},
+    "semantic_review_scope": {
+      "const": "Every listed case's question, scope, evidence sets, claims, citations, publication decision and disposition were semantically reviewed."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"reviewer_kind": {"const": "human"}},
+        "required": ["reviewer_kind"]
+      },
+      "then": {
+        "properties": {
+          "reviewer_model_family_id": {"type": "null"},
+          "reviewer_model_id": {"type": "null"},
+          "reviewer_model_revision": {"type": "null"},
+          "reviewer_prompt_sha256": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"reviewer_kind": {"const": "model"}},
+        "required": ["reviewer_kind"]
+      },
+      "then": {
+        "properties": {
+          "reviewer_model_family_id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._-]*$"
+          },
+          "reviewer_model_id": {"type": "string", "minLength": 1},
+          "reviewer_model_revision": {"type": "string", "minLength": 1},
+          "reviewer_prompt_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    }
+  ]
+}

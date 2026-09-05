@@ -21,12 +21,16 @@ from gkr.m1_authoring import (
     SEMANTIC_REVIEW_SCOPE,
     assemble_reviewed_cases,
     build_dedup_candidates,
+    build_review_binding_manifest,
     hash_dedup_file,
     hash_prompt_file,
     hash_review_file,
     lexical_cross_split_candidates,
     load_semantic_dedup_report,
+    oracle_draft_case_set_digest,
+    oracle_draft_digest,
     question_set_digest,
+    review_result_case_set_digest,
     validate_semantic_dedup_report,
 )
 from gkr.m1_hash import prompt_digest, question_digest
@@ -66,23 +70,41 @@ def _oracle_draft(case: dict[str, object]) -> dict[str, object]:
     return draft
 
 
-def _review_artifact(oracles: list[dict[str, object]], *, split: str) -> dict[str, object]:
-    split_rows = [row for row in oracles if row["split"] == split]
-    case_ids = sorted(str(row["case_id"]) for row in split_rows)
+def _review_artifact(
+    oracles: list[dict[str, object]],
+    *,
+    split: str,
+    case_ids: set[str] | None = None,
+    reviewer_session_id: str = "chatgpt-review-session",
+) -> dict[str, object]:
+    split_rows = [
+        row
+        for row in oracles
+        if row["split"] == split
+        and (case_ids is None or str(row["case_id"]) in case_ids)
+    ]
+    sorted_case_ids = sorted(str(row["case_id"]) for row in split_rows)
+    rows_by_id = {str(row["case_id"]): row for row in split_rows}
     return {
-        "schema_version": "gkr-m1-semantic-review-artifact-v1",
+        "schema_version": "gkr-m1-semantic-review-artifact-v2",
+        "hash_profile_id": "gkr-m1-hash-profile-v1",
         "split": split,
-        "reviewed_oracle_draft_question_set_sha256": question_set_digest(split_rows),
-        "case_count": len(case_ids),
-        "case_ids": case_ids,
+        "reviewed_oracle_draft_case_set_sha256": oracle_draft_case_set_digest(split_rows),
+        "case_count": len(sorted_case_ids),
+        "case_ids": sorted_case_ids,
         "overall_status": "APPROVED",
         "results": [
-            {"case_id": case_id, "status": "APPROVED", "finding_codes": []}
-            for case_id in case_ids
+            {
+                "case_id": case_id,
+                "reviewed_oracle_draft_sha256": oracle_draft_digest(rows_by_id[case_id]),
+                "status": "APPROVED",
+                "finding_codes": [],
+            }
+            for case_id in sorted_case_ids
         ],
         "reviewer_kind": "model",
         "reviewer_identity": "chatgpt",
-        "reviewer_session_id": "chatgpt-review-session",
+        "reviewer_session_id": reviewer_session_id,
         "reviewer_model_family_id": "openai-gpt",
         "reviewer_model_id": "gpt-4.1",
         "reviewer_model_revision": "chatgpt-015",
@@ -151,8 +173,15 @@ def test_question_oracle_drift_is_rejected(tmp_path: Path) -> None:
 def test_role_session_collision_is_rejected(tmp_path: Path) -> None:
     case = _scoring_sample()
     case["oracle_authorship"] = deepcopy(case["question_authorship"])
+    oracle = _oracle_draft(case)
+    artifact = _review_artifact([oracle], split="development")
     with pytest.raises(ValueError, match="pairwise distinct"):
-        _assemble_sample(tmp_path, question=_question_draft(case), oracle=_oracle_draft(case))
+        _assemble_sample(
+            tmp_path,
+            question=_question_draft(case),
+            oracle=oracle,
+            artifact=artifact,
+        )
 
 
 def test_reviewer_family_collision_is_rejected(tmp_path: Path) -> None:
@@ -167,8 +196,15 @@ def test_reviewer_family_collision_is_rejected(tmp_path: Path) -> None:
 def test_unknown_model_mapping_is_rejected(tmp_path: Path) -> None:
     case = _scoring_sample()
     case["question_authorship"]["model_id"] = "not-a-registered-model"
+    oracle = _oracle_draft(case)
+    artifact = _review_artifact([oracle], split="development")
     with pytest.raises(ValueError, match="unknown family/model mapping"):
-        _assemble_sample(tmp_path, question=_question_draft(case), oracle=_oracle_draft(case))
+        _assemble_sample(
+            tmp_path,
+            question=_question_draft(case),
+            oracle=oracle,
+            artifact=artifact,
+        )
 
 
 def test_missing_extra_and_blocked_review_results(tmp_path: Path) -> None:
@@ -184,10 +220,18 @@ def test_missing_extra_and_blocked_review_results(tmp_path: Path) -> None:
     extra["case_ids"] = sorted([str(case["case_id"]), "m1-extra-case-01"])
     extra["case_count"] = 2
     extra["results"] = [
-        {"case_id": str(case["case_id"]), "status": "APPROVED", "finding_codes": []},
-        {"case_id": "m1-extra-case-01", "status": "APPROVED", "finding_codes": []},
+        deepcopy(extra["results"][0]),
+        {
+            "case_id": "m1-extra-case-01",
+            "reviewed_oracle_draft_sha256": "00" * 32,
+            "status": "APPROVED",
+            "finding_codes": [],
+        },
     ]
-    with pytest.raises(ValueError, match="review case set"):
+    extra["reviewed_oracle_draft_case_set_sha256"] = (
+        review_result_case_set_digest(extra["results"])
+    )
+    with pytest.raises(ValueError, match="unknown case IDs"):
         _assemble_sample(tmp_path, artifact=extra)
 
     blocked = _review_artifact([_oracle_draft(case)], split="development")
@@ -202,12 +246,30 @@ def test_review_digest_is_stamped_from_exact_raw_bytes(tmp_path: Path) -> None:
     report = _assemble_sample(tmp_path)
     review_bytes = (tmp_path / "review.json").read_bytes()
     expected = hashlib.sha256(review_bytes).hexdigest()
-    assert report["review_sha256_by_split"]["development"] == expected
+    assert report["review_sha256s_by_split"]["development"] == [expected]
     assembled = json.loads((tmp_path / "reviewed.jsonl").read_text(encoding="utf-8"))
     assert assembled["oracle_review"]["review_sha256"] == expected
     assert assembled["oracle_review"]["status"] == "completed"
     assert assembled["question"] == _scoring_sample()["question"]
     assert assembled["oracle"] == _scoring_sample()["oracle"]
+
+
+def test_review_binding_rejects_oracle_mutation(tmp_path: Path) -> None:
+    case = _scoring_sample()
+    oracle = _oracle_draft(case)
+    artifact = _review_artifact([deepcopy(oracle)], split="development")
+    oracle["oracle"]["strict_answer"] = "Changed after semantic review."
+    with pytest.raises(ValueError, match="no matching approved semantic review"):
+        _assemble_sample(tmp_path, oracle=oracle, artifact=artifact)
+    assert (tmp_path / "reviewed.jsonl").exists() is False
+
+
+def test_legacy_v1_review_artifact_is_rejected(tmp_path: Path) -> None:
+    case = _scoring_sample()
+    artifact = _review_artifact([_oracle_draft(case)], split="development")
+    artifact["schema_version"] = "gkr-m1-semantic-review-artifact-v1"
+    with pytest.raises(ValueError, match="legacy v1.*do not bind oracle content"):
+        _assemble_sample(tmp_path, artifact=artifact)
 
 
 def test_prompt_review_and_dedup_hash_profiles(tmp_path: Path) -> None:
@@ -229,6 +291,44 @@ def test_prompt_review_and_dedup_hash_profiles(tmp_path: Path) -> None:
         text=True,
     ).strip()
     assert hashed == hash_prompt_file(prompt)
+
+
+def test_review_binding_manifest_selects_and_hashes_cases(tmp_path: Path) -> None:
+    cases = _two_distinct_development_cases()
+    oracles = [_oracle_draft(case) for case in cases]
+    oracle_path = _write_jsonl(tmp_path / "binding-oracles.jsonl", oracles)
+    selected_id = str(cases[1]["case_id"])
+    manifest = build_review_binding_manifest(
+        oracle_path,
+        split="development",
+        case_ids=[selected_id],
+    )
+    assert manifest["case_ids"] == [selected_id]
+    assert manifest["case_count"] == 1
+    assert manifest["reviewed_oracle_draft_case_set_sha256"] == (
+        oracle_draft_case_set_digest([oracles[1]])
+    )
+    assert manifest["results"] == [
+        {
+            "case_id": selected_id,
+            "reviewed_oracle_draft_sha256": oracle_draft_digest(oracles[1]),
+        }
+    ]
+    completed = subprocess.run(
+        [
+            PYTHON,
+            "scripts/build_m1_review_bindings.py",
+            str(oracle_path),
+            "--split",
+            "development",
+            "--case-id",
+            selected_id,
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert json.loads(completed.stdout) == manifest
 
 
 def test_exact_cross_split_duplicate_fails_candidate_build(tmp_path: Path) -> None:
@@ -422,6 +522,238 @@ def _write_role_packets(
         for split in sorted({str(case["split"]) for case in cases})
     ]
     return question_path, oracle_path, review_paths
+
+
+def _two_distinct_development_cases() -> list[dict[str, object]]:
+    first = _scoring_case_for_split(
+        "development", case_id="m1-sc-development-exact-factual-01"
+    )
+    second = _scoring_case_for_split(
+        "development", case_id="m1-sc-development-exact-factual-02"
+    )
+    second["question"] = str(second["question"]) + " Use the second request."
+    second["question_sha256"] = question_digest(str(second["question"]))
+    return [first, second]
+
+
+def test_partial_review_batches_compose_one_split(tmp_path: Path) -> None:
+    cases = _two_distinct_development_cases()
+    questions = [_question_draft(case) for case in cases]
+    oracles = [_oracle_draft(case) for case in cases]
+    question_path = _write_jsonl(tmp_path / "fragmented-questions.jsonl", questions)
+    oracle_path = _write_jsonl(tmp_path / "fragmented-oracles.jsonl", oracles)
+    review_paths = [
+        _write_json(
+            tmp_path / "fragment-a.json",
+            _review_artifact(
+                oracles,
+                split="development",
+                case_ids={str(cases[0]["case_id"])},
+                reviewer_session_id="chatgpt-review-session-a",
+            ),
+        ),
+        _write_json(
+            tmp_path / "fragment-b.json",
+            _review_artifact(
+                oracles,
+                split="development",
+                case_ids={str(cases[1]["case_id"])},
+                reviewer_session_id="chatgpt-review-session-b",
+            ),
+        ),
+    ]
+    output = tmp_path / "fragmented-reviewed.jsonl"
+    report = assemble_reviewed_cases(
+        questions_path=question_path,
+        oracle_drafts_path=oracle_path,
+        review_artifact_paths=list(reversed(review_paths)),
+        output_path=output,
+    )
+    expected_digests = sorted(
+        hashlib.sha256(path.read_bytes()).hexdigest() for path in review_paths
+    )
+    assert report["review_sha256s_by_split"]["development"] == expected_digests
+    assembled = [
+        json.loads(line)
+        for line in output.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    stamped = {
+        str(case["case_id"]): str(case["oracle_review"]["review_sha256"])
+        for case in assembled
+    }
+    assert stamped[str(cases[0]["case_id"])] == hashlib.sha256(
+        review_paths[0].read_bytes()
+    ).hexdigest()
+    assert stamped[str(cases[1]["case_id"])] == hashlib.sha256(
+        review_paths[1].read_bytes()
+    ).hexdigest()
+
+
+def test_unchanged_approval_survives_one_case_remediation(tmp_path: Path) -> None:
+    original_cases = _two_distinct_development_cases()
+    original_oracles = [_oracle_draft(case) for case in original_cases]
+    prior_review = _review_artifact(original_oracles, split="development")
+    prior_review["overall_status"] = "BLOCKED"
+    prior_review["results"][1]["status"] = "BLOCKED"
+    prior_review["results"][1]["finding_codes"] = ["needs-remediation"]
+
+    current_cases = deepcopy(original_cases)
+    current_cases[1]["question"] = str(current_cases[1]["question"]) + " Remediated."
+    current_cases[1]["question_sha256"] = question_digest(
+        str(current_cases[1]["question"])
+    )
+    current_oracles = [_oracle_draft(case) for case in current_cases]
+    replacement_review = _review_artifact(
+        current_oracles,
+        split="development",
+        case_ids={str(current_cases[1]["case_id"])},
+        reviewer_session_id="chatgpt-review-session-replacement",
+    )
+
+    question_path = _write_jsonl(
+        tmp_path / "remediated-questions.jsonl",
+        [_question_draft(case) for case in current_cases],
+    )
+    oracle_path = _write_jsonl(tmp_path / "remediated-oracles.jsonl", current_oracles)
+    prior_path = _write_json(tmp_path / "prior-blocked-review.json", prior_review)
+    replacement_path = _write_json(
+        tmp_path / "replacement-review.json", replacement_review
+    )
+    output = tmp_path / "remediated-reviewed.jsonl"
+    assemble_reviewed_cases(
+        questions_path=question_path,
+        oracle_drafts_path=oracle_path,
+        review_artifact_paths=[prior_path, replacement_path],
+        output_path=output,
+    )
+    assembled = {
+        str(case["case_id"]): case
+        for case in (
+            json.loads(line)
+            for line in output.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        )
+    }
+    assert assembled[str(current_cases[0]["case_id"])]["oracle_review"][
+        "review_sha256"
+    ] == hashlib.sha256(prior_path.read_bytes()).hexdigest()
+    assert assembled[str(current_cases[1]["case_id"])]["oracle_review"][
+        "review_sha256"
+    ] == hashlib.sha256(replacement_path.read_bytes()).hexdigest()
+
+
+def test_current_content_block_cannot_be_overridden_by_approval(tmp_path: Path) -> None:
+    cases = _two_distinct_development_cases()
+    questions = [_question_draft(case) for case in cases]
+    oracles = [_oracle_draft(case) for case in cases]
+    blocked = _review_artifact(oracles, split="development")
+    blocked["overall_status"] = "BLOCKED"
+    blocked["results"][1]["status"] = "BLOCKED"
+    blocked["results"][1]["finding_codes"] = ["unresolved"]
+    approved = _review_artifact(
+        oracles,
+        split="development",
+        case_ids={str(cases[1]["case_id"])},
+        reviewer_session_id="chatgpt-review-session-conflict",
+    )
+    question_path = _write_jsonl(tmp_path / "conflict-questions.jsonl", questions)
+    oracle_path = _write_jsonl(tmp_path / "conflict-oracles.jsonl", oracles)
+    blocked_path = _write_json(tmp_path / "conflict-blocked.json", blocked)
+    approved_path = _write_json(tmp_path / "conflict-approved.json", approved)
+    with pytest.raises(ValueError, match="current oracle content has a blocked"):
+        assemble_reviewed_cases(
+            questions_path=question_path,
+            oracle_drafts_path=oracle_path,
+            review_artifact_paths=[blocked_path, approved_path],
+            output_path=tmp_path / "conflicted-reviewed.jsonl",
+        )
+
+
+def test_current_approvals_must_be_unambiguous_and_complete(tmp_path: Path) -> None:
+    cases = _two_distinct_development_cases()
+    questions = [_question_draft(case) for case in cases]
+    oracles = [_oracle_draft(case) for case in cases]
+    question_path = _write_jsonl(tmp_path / "coverage-questions.jsonl", questions)
+    oracle_path = _write_jsonl(tmp_path / "coverage-oracles.jsonl", oracles)
+    first_id = str(cases[0]["case_id"])
+    one_case = _review_artifact(
+        oracles, split="development", case_ids={first_id}
+    )
+    first_path = _write_json(tmp_path / "coverage-a.json", one_case)
+
+    with pytest.raises(ValueError, match="no matching approved semantic review"):
+        assemble_reviewed_cases(
+            questions_path=question_path,
+            oracle_drafts_path=oracle_path,
+            review_artifact_paths=[first_path],
+            output_path=tmp_path / "missing-review.jsonl",
+        )
+
+    duplicate_path = _write_json(tmp_path / "coverage-duplicate.json", one_case)
+    with pytest.raises(ValueError, match="multiple matching semantic approvals"):
+        assemble_reviewed_cases(
+            questions_path=question_path,
+            oracle_drafts_path=oracle_path,
+            review_artifact_paths=[first_path, duplicate_path],
+            output_path=tmp_path / "overlap-review.jsonl",
+        )
+
+
+def test_scenario_variants_must_share_one_review_artifact(tmp_path: Path) -> None:
+    cases = _two_distinct_development_cases()
+    cases[1]["scenario_id"] = cases[0]["scenario_id"]
+    cases[1]["variant_id"] = "b"
+    questions = [_question_draft(case) for case in cases]
+    oracles = [_oracle_draft(case) for case in cases]
+    question_path = _write_jsonl(tmp_path / "variant-questions.jsonl", questions)
+    oracle_path = _write_jsonl(tmp_path / "variant-oracles.jsonl", oracles)
+    review_paths = [
+        _write_json(
+            tmp_path / f"variant-{index}.json",
+            _review_artifact(
+                oracles,
+                split="development",
+                case_ids={str(case["case_id"])},
+                reviewer_session_id=f"chatgpt-review-session-{index}",
+            ),
+        )
+        for index, case in enumerate(cases)
+    ]
+    with pytest.raises(ValueError, match="all variants of scenario"):
+        assemble_reviewed_cases(
+            questions_path=question_path,
+            oracle_drafts_path=oracle_path,
+            review_artifact_paths=review_paths,
+            output_path=tmp_path / "split-variant-review.jsonl",
+        )
+
+
+def test_scenario_variants_can_share_one_review_artifact(tmp_path: Path) -> None:
+    cases = _two_distinct_development_cases()
+    cases[1]["scenario_id"] = cases[0]["scenario_id"]
+    cases[1]["variant_id"] = "b"
+    questions, oracles, reviews = _write_role_packets(
+        tmp_path,
+        cases,
+        prefix="shared-variant-",
+    )
+    output = tmp_path / "shared-variant-reviewed.jsonl"
+    assemble_reviewed_cases(
+        questions_path=questions,
+        oracle_drafts_path=oracles,
+        review_artifact_paths=reviews,
+        output_path=output,
+    )
+    assembled = [
+        json.loads(line)
+        for line in output.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(assembled) == 2
+    assert {
+        case["oracle_review"]["review_sha256"] for case in assembled
+    } == {hashlib.sha256(reviews[0].read_bytes()).hexdigest()}
 
 
 def test_test_only_assembly_is_rejected_inside_repository(tmp_path: Path) -> None:
