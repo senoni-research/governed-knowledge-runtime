@@ -13,10 +13,11 @@ experiment. It does not assume that current company facts belong in a model adap
 
 ## Working local MLX pilot
 
-The repository includes a reproducible, synthetic local pilot that has run on an M4 Max with
-Qwen3 generation and a distinct Llama verifier. It exercises ordinary questions, paraphrases,
-multi-record answers, abstention, access filtering, an approved update, historical queries,
-latency, and append-only traces:
+The repository includes a reproducible, synthetic local pilot that has run on an M4 Max. The
+lightweight Qwen3-4B/Llama-3.2-3B pair remains the smoke baseline. The same fixed pilot has
+also run with the quality-first Qwen3.8-27B/Gemma-4-31B pair. It exercises ordinary questions,
+paraphrases, multi-record answers, abstention, access filtering, an approved update,
+historical queries, latency, memory, and append-only traces:
 
 ```bash
 .venv/bin/python scripts/run_local_pilot.py \
@@ -27,6 +28,9 @@ latency, and append-only traces:
 
 Actual before/after outputs and the personal project-document trial are recorded in
 [`docs/local-claim-pilot-2026-09-05.md`](docs/local-claim-pilot-2026-09-05.md).
+The pinned strong-model run, saved-answer verifier replay, actual answers, and side-by-side
+resource figures are in
+[`docs/local-strong-model-pilot-2026-09-05.md`](docs/local-strong-model-pilot-2026-09-05.md).
 
 Model answers use an internal claim contract. Every rendered claim names one authorized record
 and carries an exact passage copied from it. The runtime checks the record and passage before a

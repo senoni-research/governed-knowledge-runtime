@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from gkr.ai import GenerationRequest, LocalGenerator
 from gkr.answers import EvidenceClaim
@@ -94,6 +94,7 @@ class SemanticVerification:
     verifier_model: str
     raw_response: str
     claim_results: tuple[ClaimVerification, ...] = ()
+    claim_generation_metadata: tuple[dict[str, Any], ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -101,6 +102,7 @@ class SemanticVerification:
             "issues": list(self.issues),
             "verifier_model": self.verifier_model,
             "claim_results": [result.to_dict() for result in self.claim_results],
+            "claim_generation_metadata": list(self.claim_generation_metadata),
         }
 
 
@@ -147,6 +149,7 @@ class ModelSemanticVerifier:
 
         claim_results: list[ClaimVerification] = []
         raw_responses: list[str] = []
+        generation_metadata: list[dict[str, Any]] = []
         verifier_models: set[str] = set()
         for index, claim in enumerate(claims):
             prompt = f"""Classify textual entailment using only the paired passage.
@@ -174,6 +177,7 @@ Return exactly one JSON object and no explanation:
                 )
             )
             raw_responses.append(generation.text)
+            generation_metadata.append(generation.metadata)
             verifier_models.add(generation.model)
             try:
                 claim_results.append(
@@ -205,6 +209,7 @@ Return exactly one JSON object and no explanation:
             verifier_model=verifier_model,
             raw_response="\n".join(raw_responses),
             claim_results=results,
+            claim_generation_metadata=tuple(generation_metadata),
         )
 
 

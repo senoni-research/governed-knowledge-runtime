@@ -32,6 +32,8 @@ def main() -> int:
     )
     parser.add_argument("--generator-model", type=Path, required=True)
     parser.add_argument("--verifier-model", type=Path, required=True)
+    parser.add_argument("--generator-revision")
+    parser.add_argument("--verifier-revision")
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
 
@@ -63,7 +65,9 @@ def main() -> int:
         ),
         "started_at": _utc_now(),
         "generator_model": str(generator),
+        "generator_revision": args.generator_revision,
         "verifier_model": str(verifier),
+        "verifier_revision": args.verifier_revision,
         "authority_database": str(paths.authority_db),
         "trace_database": str(paths.trace_db),
         "cases": [],
@@ -509,6 +513,7 @@ def _summarize_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "answer_status": payload.get("answer_status"),
             "answer": payload.get("answer"),
             "withheld_candidate": payload.get("withheld_candidate"),
+            "generation_metadata": payload.get("generation_metadata") or {},
             "claims": payload.get("claims", []),
             "claim_contract_issues": payload.get("claim_contract_issues", []),
             "model": payload.get("model"),
@@ -516,6 +521,9 @@ def _summarize_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "semantic_verdict": semantic.get("verdict"),
             "semantic_issues": semantic.get("issues", []),
             "claim_results": semantic.get("claim_results", []),
+            "verifier_generation_metadata": semantic.get(
+                "claim_generation_metadata", []
+            ),
             "citation_integrity": verification.get("citation_integrity"),
             "cited_references": verification.get("cited_references", []),
             "evidence_references": evidence.get("record_references", []),
@@ -627,7 +635,9 @@ def _render_markdown(report: dict[str, Any]) -> str:
         str(report["purpose"]),
         "",
         f"- Generator: `{report['generator_model']}`",
+        f"- Generator revision: `{report['generator_revision'] or 'not recorded'}`",
         f"- Verifier: `{report['verifier_model']}`",
+        f"- Verifier revision: `{report['verifier_revision'] or 'not recorded'}`",
         f"- Cases/operations: {report['case_count']}",
         f"- Unexpected exit codes: {report['unexpected_exit_count']}",
         f"- Published answers: {report['published_answer_count']}",
@@ -658,6 +668,28 @@ def _render_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- Cited evidence: `{refs}`")
         if case.get("trace_id"):
             lines.append(f"- Trace: `{case['trace_id']}`")
+        if case.get("runtime_duration_ms") is not None:
+            lines.append(
+                f"- Runtime duration: `{case['runtime_duration_ms']} ms`"
+            )
+        if case.get("peak_process_rss_bytes") is not None:
+            peak_gib = case["peak_process_rss_bytes"] / (1024**3)
+            lines.append(f"- Peak process RSS: `{peak_gib:.3f} GiB`")
+        generation_metadata = case.get("generation_metadata") or {}
+        if generation_metadata.get("generation_tokens_per_second") is not None:
+            lines.append(
+                "- Generator decode rate: "
+                f"`{generation_metadata['generation_tokens_per_second']} tokens/s`"
+            )
+        verifier_metadata = case.get("verifier_generation_metadata") or []
+        verifier_rates = [
+            value.get("generation_tokens_per_second")
+            for value in verifier_metadata
+            if value.get("generation_tokens_per_second") is not None
+        ]
+        if verifier_rates:
+            rendered_rates = ", ".join(str(value) for value in verifier_rates)
+            lines.append(f"- Verifier decode rate(s): `{rendered_rates} tokens/s`")
         for claim in case.get("claims", []):
             lines.extend(
                 (

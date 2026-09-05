@@ -98,6 +98,9 @@ class RuntimeResult:
             "answer": self.answer,
             "answer_status": self.answer_status,
             "model": self.generation.model if self.generation else None,
+            "generation_metadata": (
+                self.generation.metadata if self.generation else None
+            ),
             "claims": [claim.to_dict() for claim in self.claims],
             "claim_contract_issues": list(self.claim_contract_issues),
             "decision_parse": self.decision_parse.to_dict(),
