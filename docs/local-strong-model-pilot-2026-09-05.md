@@ -15,6 +15,8 @@ certification.
 - Both models ran with `enable_thinking=false`. Generated reasoning delimiters are separated
   from final content; an unclosed reasoning channel or token-limit finish is an execution
   error.
+- The exact successful Mac, Python, MLX, tokenizer, and related package versions are recorded
+  in [`../reproduction/strong-pilot-2026-09-05.json`](../reproduction/strong-pilot-2026-09-05.json).
 
 The exact acquisition and run commands were:
 
@@ -123,7 +125,13 @@ the original faulty pilot and four corrected candidates saved from the claim-con
   --max-tokens 256
 ```
 
-The replay used the complete synthetic records, not statement-only excerpts. Gemma:
+The command now defaults to the portable public fixture at
+[`../examples/verifier-replay/cases.jsonl`](../examples/verifier-replay/cases.jsonl). Each
+exported candidate and passage is bound to its historical trace and ignored-artifact hashes.
+Supplying `--artifacts-dir artifacts` additionally verifies an owner's retained local copies;
+it is not required in a fresh clone.
+
+The replay used the complete public synthetic records, not statement-only excerpts. Gemma:
 
 - rejected the saved release answer containing “No other evidence is required or implied”;
 - rejected the saved two-record answer with no handbook citation;

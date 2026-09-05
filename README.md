@@ -26,11 +26,24 @@ historical queries, latency, memory, and append-only traces:
   --output-dir artifacts/local-pilot
 ```
 
+That pilot intentionally starts fresh CLI processes so its wall times include model loading.
+For repeated questions, keep both models loaded in the persistent local session:
+
+```bash
+.venv/bin/python scripts/run_local_session.py \
+  --config ~/.config/gkr/session.json
+```
+
+Session setup and the config format are documented in
+[`docs/local-session.md`](docs/local-session.md).
+
 Actual before/after outputs and the personal project-document trial are recorded in
 [`docs/local-claim-pilot-2026-09-05.md`](docs/local-claim-pilot-2026-09-05.md).
 The pinned strong-model run, saved-answer verifier replay, actual answers, and side-by-side
 resource figures are in
 [`docs/local-strong-model-pilot-2026-09-05.md`](docs/local-strong-model-pilot-2026-09-05.md).
+The chronological [experimental result index](docs/results/README.md) keeps runtime-published,
+diagnostic replay, and certified-correct claims distinct.
 
 Model answers use an internal claim contract. Every rendered claim names one authorized record
 and carries an exact passage copied from it. The runtime checks the record and passage before a
@@ -38,10 +51,8 @@ distinct local model judges each claim. Unsupported or malformed candidates rema
 Insufficient evidence produces the fixed abstention: "I cannot establish that from the evidence
 available to me." A local-verifier-supported result is development output, not certified truth.
 
-For repeated personal use, `scripts/run_local_session.py` loads the models once and reads local
-paths and simulated actor scope from a JSON config. See
-[`docs/local-session.md`](docs/local-session.md). Keep real documents, converted authority
-records, databases, and traces outside the public repository.
+Keep real documents, converted authority records, databases, and traces outside the public
+repository.
 
 M1 benchmark authoring remains explicitly unfinished and is not a prerequisite for using this
 development pilot. Gate 1 remains `not_run`.
@@ -186,28 +197,12 @@ gkr context "question" --actor alice --group employees --json
 ```
 
 `gkr eval` runs the frozen M0 suite covering valid-time selection, known-at reconstruction,
-and restricted-record non-exposure. The versioned M1 case and metric contract remains frozen
-under `evaluation/m1/` for v1 and v2. A Grok-authored and Grok-remediated fictional
-synthetic authority corpus now exists at `evaluation/m1/corpus/`. Independent ChatGPT
-content review concluded `CONTENT_APPROVED`. Independent Cursor code review concluded
-`CODE_APPROVED`. That is AI review of fictional benchmark content, not human or
-organizational approval. The corpus is frozen under the v3 freeze manifest. Frozen
-contract v3 governs case authoring for this fictional
-research corpus (`v3 contract frozen; corpus frozen; Gate 1 not_run`). Human or owner approval remains required for real company authority,
-production promotion, and answer-quality claims. The 360 scoring scenarios and oracles
-are unbuilt, and Gate 1 remains `not_run`. Deterministic oracle validation is not
-semantic proof. The conformance fixture is non-scoring and unreviewed in its case
-provenance; its prompt digest is intentionally null because the historical
-prompt preimage was not retained. Gate 1 defines metrics but selects no
-retriever. Scoring-suite support can prepare exact salted staging bytes
-outside the repository, encrypt those bytes with local `age`, and finalize
-from the unchanged prepared files. Test plaintext and ciphertext stay outside
-the repository. Plaintext test staging is not a sealed bundle; sealing
-requires an external encrypted artifact. Validate the corpus with:
-
-```bash
-.venv/bin/python scripts/validate_m1_corpus.py
-```
+and restricted-record non-exposure. M1 remains preserved and paused under `evaluation/m1/`:
+the v3 contract and synthetic corpus are frozen, the 360 scoring scenarios remain unfinished,
+and Gate 1 remains `not_run`. Its AI reviews are not human or organizational approval.
+Authoring, review, encryption, freeze, validation, and historical-contract details remain in
+[`evaluation/m1/README.md`](evaluation/m1/README.md); none is a prerequisite for this
+non-production pilot.
 
 Embedding or reranking choices must not be made from the five-record demo.
 
