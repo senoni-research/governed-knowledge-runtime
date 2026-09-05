@@ -1,0 +1,10 @@
+# Exact runtime and tokenizer package versions used by the 2026-09-05 strong-model pilot.
+# This is a targeted reproduction constraint set, not a complete pip lock file.
+huggingface-hub==1.29.0
+jinja2==3.1.6
+mlx==0.32.2
+mlx-lm==0.31.3
+numpy==2.4.6
+safetensors==0.8.0
+tokenizers==0.23.1
+transformers==5.16.1

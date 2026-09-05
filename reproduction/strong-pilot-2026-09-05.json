@@ -1,0 +1,65 @@
+{
+  "schema_version": "gkr-tested-pilot-environment-v1",
+  "release_classification": "experimental",
+  "measured_source_revision": "419fcd276a638048e65682146868fc2ae30d7a91",
+  "captured_at": "2026-09-05T15:43:47Z",
+  "hardware": {
+    "model_name": "MacBook Pro",
+    "model_identifier": "Mac16,5",
+    "chip": "Apple M4 Max",
+    "memory_gb": 128,
+    "architecture": "arm64"
+  },
+  "operating_system": {
+    "product": "macOS",
+    "product_version": "26.6.2",
+    "build_version": "25G83",
+    "darwin_version": "25.6.0"
+  },
+  "python": {
+    "implementation": "CPython",
+    "version": "3.11.8"
+  },
+  "runtime_packages": {
+    "mlx": "0.32.2",
+    "mlx-lm": "0.31.3",
+    "transformers": "5.16.1",
+    "tokenizers": "0.23.1",
+    "huggingface-hub": "1.29.0",
+    "safetensors": "0.8.0",
+    "jinja2": "3.1.6",
+    "numpy": "2.4.6"
+  },
+  "constraints_file": "reproduction/strong-pilot-2026-09-05-constraints.txt",
+  "models": {
+    "generator": {
+      "repository": "mlx-community/Qwen3.8-27B-8bit",
+      "revision": "815b83c0df8ffd1d1b5244cf75fd6ef14fca9ef9",
+      "precision": "8-bit"
+    },
+    "verifier": {
+      "repository": "mlx-community/gemma-4-31b-it-8bit",
+      "revision": "f5f3dc92ab4af76724c36c21eb6bedadb3a851be",
+      "precision": "8-bit"
+    }
+  },
+  "generation": {
+    "thinking_enabled": false,
+    "temperature": 0.0,
+    "generator_max_tokens": 512,
+    "verifier_max_tokens": 256,
+    "evidence_token_budget": 12000,
+    "token_limit_finish_is_execution_error": true
+  },
+  "results": {
+    "strong_pilot_report": "docs/local-strong-model-pilot-2026-09-05.md",
+    "portable_replay_fixture": "examples/verifier-replay/cases.jsonl"
+  },
+  "unavailable_historical_metadata": [
+    "The small-model baseline did not capture an exact transitive Python package set."
+  ],
+  "notes": [
+    "This is a targeted tested-environment manifest, not a complete operating-system image or dependency lock.",
+    "Model weights, local databases, and generated artifact directories are deliberately excluded from source control."
+  ]
+}
