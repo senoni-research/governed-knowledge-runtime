@@ -11,6 +11,16 @@ def test_citation_parser_normalizes_common_record_id_label() -> None:
     assert result.cited_references == ("ENG-REL-001:v1",)
 
 
+def test_citation_parser_normalizes_common_citation_label() -> None:
+    result = verify_citations(
+        "The gate applies [CITATION: ENG-REL-001:v1].",
+        evidence_references=("ENG-REL-001:v1",),
+    )
+
+    assert result.integrity == "pass"
+    assert result.cited_references == ("ENG-REL-001:v1",)
+
+
 def test_citation_parser_rejects_unretrieved_reference() -> None:
     result = verify_citations(
         "The gate applies [OTHER:v1].",

@@ -7,7 +7,8 @@ from typing import Literal
 CitationIntegrity = Literal["pass", "fail", "not_applicable"]
 
 _CITATION_PATTERN = re.compile(
-    r"\[(?:record_id:\s*)?([A-Za-z0-9][A-Za-z0-9._-]*:v[1-9]\d*)\]",
+    r"\[(?:(?:record_id|citation):\s*)?"
+    r"([A-Za-z0-9][A-Za-z0-9._-]*:v[1-9]\d*)\]",
     re.IGNORECASE,
 )
 

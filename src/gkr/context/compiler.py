@@ -60,8 +60,9 @@ class ContextCompiler:
 NON-NEGOTIABLE RULES
 1. Use only the EVIDENCE below for company-specific factual claims.
 2. Cite each material factual claim with its exact [record_id:vN] reference.
-   Canonical: [ENG-REL-001:v1]. A legacy [record_id: ENG-REL-001:v1] label is accepted
-   by verification for compatibility, but do not emit it.
+   Canonical: [ENG-REL-001:v1]. Legacy [record_id: ENG-REL-001:v1] and
+   [CITATION: ENG-REL-001:v1] labels are accepted by verification for compatibility,
+   but do not emit them.
 3. Apply only evidence valid on the decision date.
 4. Do not infer hidden or unauthorized information.
 5. If the evidence is missing, conflicting, or insufficient, say so explicitly.

@@ -93,6 +93,45 @@ def test_deterministic_gate_ignores_unrelated_negative_scope(
     assert generator.calls == 1
 
 
+def test_deterministic_gate_accepts_equivalent_avoidance_prohibitions(
+    store: AuthorityStore,
+) -> None:
+    evidence = _evidence(store)
+    generator = VerifierGenerator('{"verdict":"supported","issues":[]}')
+    verifier = ModelSemanticVerifier(generator)
+
+    result = verifier.verify(
+        candidate_answer=(
+            "No, you may not split a purchase into smaller bookings to avoid approval. "
+            "Splitting a purchase into smaller bookings to avoid approval is not permitted."
+        ),
+        evidence=evidence,
+    )
+
+    assert result.verdict == "supported"
+    assert generator.calls == 1
+
+
+def test_deterministic_gate_rejects_opposing_avoidance_permissions(
+    store: AuthorityStore,
+) -> None:
+    evidence = _evidence(store)
+    generator = VerifierGenerator('{"verdict":"supported","issues":[]}')
+    verifier = ModelSemanticVerifier(generator)
+
+    result = verifier.verify(
+        candidate_answer=(
+            "Splitting a purchase to avoid approval is allowed. "
+            "Splitting a purchase to avoid approval is not allowed."
+        ),
+        evidence=evidence,
+    )
+
+    assert result.verdict == "unsupported"
+    assert result.verifier_model == "deterministic-contradiction-check"
+    assert generator.calls == 0
+
+
 def _evidence(store: AuthorityStore):
     store.append(make_record())
     corpus = store.current_records(

@@ -236,7 +236,13 @@ def _claim_tokens(value: str) -> set[str]:
 
 
 def _polarity_terms(value: str) -> set[str]:
-    return set(_normalized_tokens(value)).intersection(_POLARITY_TERMS)
+    tokens = _normalized_tokens(value)
+    return {
+        token
+        for index, token in enumerate(tokens)
+        if token in _POLARITY_TERMS
+        and not _is_avoidance_object(tokens, index)
+    }
 
 
 def _negated_polarity_terms(value: str) -> set[str]:
@@ -249,6 +255,7 @@ def _negated_polarity_terms(value: str) -> set[str]:
         token
         for index, token in enumerate(normalized)
         if token in _POLARITY_TERMS
+        and not _is_avoidance_object(normalized, index)
         and any(abs(index - negation_index) <= 3 for negation_index in negation_indexes)
     }
 
@@ -256,6 +263,14 @@ def _negated_polarity_terms(value: str) -> set[str]:
 def _normalized_tokens(value: str) -> list[str]:
     tokens = re.findall(r"[£$€]?\d+(?:[.,]\d+)?|[a-z]+(?:'[a-z]+)?", value.casefold())
     return [_NORMAL_FORMS.get(token, token) for token in tokens]
+
+
+def _is_avoidance_object(tokens: list[str], index: int) -> bool:
+    return (
+        tokens[index] == "approval"
+        and index > 0
+        and tokens[index - 1] == "avoid"
+    )
 
 
 def _first_json_object(value: str) -> dict[str, object]:
