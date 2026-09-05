@@ -59,7 +59,7 @@ def build_parser() -> argparse.ArgumentParser:
     ask.add_argument("--verifier-model", help="Optional separate local MLX verifier directory")
     ask.add_argument("--verifier-adapter", type=Path, help="Optional verifier LoRA adapter")
     ask.add_argument("--max-tokens", type=int, default=512)
-    ask.add_argument("--verifier-max-tokens", type=int, default=96)
+    ask.add_argument("--verifier-max-tokens", type=int, default=256)
     ask.add_argument("--trace-db", type=Path, default=DEFAULT_TRACE_DATABASE)
     ask.add_argument(
         "--allow-model-download",
@@ -233,7 +233,8 @@ def _ask(args: argparse.Namespace) -> int:
             print(f"Evidence bundle: {result.evidence.evidence_bundle_id}")
             if result.trace:
                 print(f"Execution trace: {result.trace.trace_id}")
-    return 0 if result.answer_status.startswith("published_") else 2
+    successful_outcome = result.answer_status.startswith(("published_", "abstained_"))
+    return 0 if successful_outcome else 2
 
 
 def _add_query_arguments(parser: argparse.ArgumentParser) -> None:

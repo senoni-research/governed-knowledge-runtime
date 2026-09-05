@@ -4,6 +4,9 @@ This records an actual synthetic, non-production run on the owner's M4 Max. It i
 evidence, not benchmark evidence, authenticated authorization, human approval, or certification.
 M1 Gate 1 remains `not_run`.
 
+The bounded claim-contract follow-up, including before/after outputs, is in
+[`local-claim-pilot-2026-09-05.md`](local-claim-pilot-2026-09-05.md).
+
 ## Reproduction
 
 ```bash

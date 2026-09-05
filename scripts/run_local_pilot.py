@@ -106,14 +106,20 @@ def main() -> int:
         ),
         (
             "04_travel_policy_before_update",
-            "What approval and filing requirements apply to travel and subsistence?",
+                (
+                    "What receipt and business-purpose filing deadline applies "
+                    "to travel and subsistence?"
+                ),
             "2026-09-30",
             "2026-09-30T12:00:00Z",
             ("employees",),
         ),
         (
             "05_travel_policy_historical",
-            "What approval and filing requirements applied to travel and subsistence?",
+                (
+                    "What receipt and business-purpose filing deadline applied "
+                    "to travel and subsistence?"
+                ),
             "2026-08-31",
             "2026-09-30T12:00:00Z",
             ("employees",),
@@ -121,9 +127,8 @@ def main() -> int:
         (
             "06_two_record_question",
             (
-                "Can the public handbook index override production-release "
-                "requirements, who owns those requirements, and what evidence "
-                "must be linked before deployment?"
+                "What does the public handbook index do, and what evidence must "
+                "be linked for a production release before deployment?"
             ),
             "2026-09-01",
             "2026-09-05T12:30:00Z",
@@ -145,7 +150,7 @@ def main() -> int:
         ),
         (
             "11_authorized_recovery_answer",
-            "Who may access cryptographic recovery material and where may it be copied?",
+                "What copying restriction applies to cryptographic recovery material?",
             "2026-09-01",
             "2026-09-05T12:30:00Z",
             ("security-recovery",),
@@ -321,7 +326,10 @@ def main() -> int:
         paths,
         "22_travel_policy_after_update",
         _ask_command(
-            "What approval and filing requirements apply to travel and subsistence?",
+            (
+                "What receipt and business-purpose filing deadline applies "
+                "to travel and subsistence?"
+            ),
             paths=paths,
             generator=generator,
             verifier=verifier,
@@ -346,6 +354,10 @@ def main() -> int:
     )
     report["published_answer_count"] = sum(
         str(case.get("answer_status", "")).startswith("published_")
+        for case in report["cases"]
+    )
+    report["abstention_count"] = sum(
+        str(case.get("answer_status", "")).startswith("abstained_")
         for case in report["cases"]
     )
     report["withheld_or_refused_count"] = sum(
@@ -392,9 +404,9 @@ def _ask_command(
             "--verifier-model",
             str(verifier),
             "--max-tokens",
-            "256",
+            "512",
             "--verifier-max-tokens",
-            "96",
+            "256",
             "--trace-db",
             str(paths.trace_db),
             "--json",
@@ -497,10 +509,13 @@ def _summarize_payload(payload: dict[str, Any]) -> dict[str, Any]:
             "answer_status": payload.get("answer_status"),
             "answer": payload.get("answer"),
             "withheld_candidate": payload.get("withheld_candidate"),
+            "claims": payload.get("claims", []),
+            "claim_contract_issues": payload.get("claim_contract_issues", []),
             "model": payload.get("model"),
             "verifier_model": semantic.get("verifier_model"),
             "semantic_verdict": semantic.get("verdict"),
             "semantic_issues": semantic.get("issues", []),
+            "claim_results": semantic.get("claim_results", []),
             "citation_integrity": verification.get("citation_integrity"),
             "cited_references": verification.get("cited_references", []),
             "evidence_references": evidence.get("record_references", []),
@@ -616,6 +631,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
         f"- Cases/operations: {report['case_count']}",
         f"- Unexpected exit codes: {report['unexpected_exit_count']}",
         f"- Published answers: {report['published_answer_count']}",
+        f"- Structured abstentions: {report['abstention_count']}",
         f"- Withheld/refused answers: {report['withheld_or_refused_count']}",
         "",
         "## Observed cases",
@@ -642,6 +658,16 @@ def _render_markdown(report: dict[str, Any]) -> str:
             lines.append(f"- Cited evidence: `{refs}`")
         if case.get("trace_id"):
             lines.append(f"- Trace: `{case['trace_id']}`")
+        for claim in case.get("claims", []):
+            lines.extend(
+                (
+                    f"- Claim: {claim['claim']}",
+                    f"- Supporting record: `{claim['record_reference']}`",
+                    f"- Exact passage: {claim['supporting_passage']}",
+                )
+            )
+        for issue in case.get("claim_contract_issues", []):
+            lines.append(f"- Claim-contract issue: {issue}")
         if case.get("answer"):
             lines.extend(("", str(case["answer"])))
         elif case.get("withheld_candidate"):
@@ -665,6 +691,7 @@ def _terminal_summary(report: dict[str, Any]) -> dict[str, Any]:
         "case_count": report["case_count"],
         "unexpected_exit_count": report["unexpected_exit_count"],
         "published_answer_count": report["published_answer_count"],
+        "abstention_count": report["abstention_count"],
         "withheld_or_refused_count": report["withheld_or_refused_count"],
         "report_json": str(Path(report["authority_database"]).parent / "pilot-report.json"),
         "report_markdown": str(Path(report["authority_database"]).parent / "pilot-report.md"),

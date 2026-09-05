@@ -11,6 +11,37 @@ public clone.
 The design reuses governance and evaluation lessons from a preceding parametric-memory
 experiment. It does not assume that current company facts belong in a model adapter.
 
+## Working local MLX pilot
+
+The repository includes a reproducible, synthetic local pilot that has run on an M4 Max with
+Qwen3 generation and a distinct Llama verifier. It exercises ordinary questions, paraphrases,
+multi-record answers, abstention, access filtering, an approved update, historical queries,
+latency, and append-only traces:
+
+```bash
+.venv/bin/python scripts/run_local_pilot.py \
+  --generator-model /absolute/path/to/Qwen3-4B-Instruct-2507-4bit \
+  --verifier-model /absolute/path/to/Llama-3.2-3B-Instruct \
+  --output-dir artifacts/local-pilot
+```
+
+Actual before/after outputs and the personal project-document trial are recorded in
+[`docs/local-claim-pilot-2026-09-05.md`](docs/local-claim-pilot-2026-09-05.md).
+
+Model answers use an internal claim contract. Every rendered claim names one authorized record
+and carries an exact passage copied from it. The runtime checks the record and passage before a
+distinct local model judges each claim. Unsupported or malformed candidates remain withheld.
+Insufficient evidence produces the fixed abstention: "I cannot establish that from the evidence
+available to me." A local-verifier-supported result is development output, not certified truth.
+
+For repeated personal use, `scripts/run_local_session.py` loads the models once and reads local
+paths and simulated actor scope from a JSON config. See
+[`docs/local-session.md`](docs/local-session.md). Keep real documents, converted authority
+records, databases, and traces outside the public repository.
+
+M1 benchmark authoring remains explicitly unfinished and is not a prerequisite for using this
+development pilot. Gate 1 remains `not_run`.
+
 ## Non-negotiable boundaries
 
 - All inference runs locally on the Mac. There is no cloud model provider in the runtime.
@@ -59,7 +90,7 @@ authorization-first candidate set
        deterministic citation check
                     |
                     v
-        separate local semantic judge
+       per-claim local semantic judge
                     |
              publish or withhold
                     |
@@ -73,8 +104,8 @@ authority record is pinned into its evidence bundle, so deterministic execution 
 depend on BM25 selecting that record. Negation, multiple amounts, unclear subjects,
 conditionals, unevaluated rule conditions or exceptions, and competing rules fail closed to
 the non-deterministic path. The full-context/BM25 router is intentionally simple. Dense
-retrieval, reranking, temporal graph traversal, and claim-by-claim provenance tracing will be
-added only behind measured evaluation gates.
+retrieval, reranking, temporal graph traversal, and a general provenance graph will be added
+only when observed use justifies them. The current claim list is deliberately narrow.
 
 ## Quick start on an Apple Silicon Mac
 
